@@ -41,3 +41,4 @@ yarn-error.log*
 next-env.d.ts
 DEMO_VIDEO_OUTLINE.md
 newserver.log
+server.log

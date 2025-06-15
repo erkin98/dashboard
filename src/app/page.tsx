@@ -6,8 +6,6 @@ import {
   CurrencyDollarIcon,
   PhoneIcon,
   UserGroupIcon,
-  ChartBarIcon,
-  EyeIcon,
   TrophyIcon,
   ArrowTrendingUpIcon,
   ArrowTrendingDownIcon
@@ -17,46 +15,31 @@ import {
   AlertCircle,
   BarChart3,
   Bell,
+  Calendar,
   Command,
-  Cpu,
-  Database,
   Download,
-  Globe,
-  HardDrive,
   Hexagon,
-  LineChart,
-  Lock,
   type LucideIcon,
-  MessageSquare,
-  Mic,
   Moon,
-  Radio,
   RefreshCw,
-  Search,
   Settings,
-  Shield,
   Sun,
   Terminal,
-  Wifi,
   Zap,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Slider } from "@/components/ui/slider";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-
-import { MetricCard } from '@/components/MetricCard';
+import NotificationCenter from "@/components/NotificationCenter";
+import AdvancedSearch from "@/components/AdvancedSearch";
 import { FunnelChart } from '@/components/FunnelChart';
 import { TrendsChart } from '@/components/TrendsChart';
 import { VideoPerformanceTable } from '@/components/VideoPerformanceTable';
-import { AIInsights } from '@/components/AIInsights';
 import { DashboardData } from '@/types';
 
 interface ParticleType {
@@ -74,25 +57,22 @@ export default function Dashboard() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedMonth] = useState(-1);
-  const [timeRange, setTimeRange] = useState<string>('all');
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
-  const [systemStatus, setSystemStatus] = useState(85);
   const [isLoading, setIsLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
+  const [quickActionLoading, setQuickActionLoading] = useState<string | null>(null);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [activeSection, setActiveSection] = useState("Dashboard");
+  const [selectedMetric, setSelectedMetric] = useState<string | null>(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
   
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const fetchDashboardData = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/dashboard', {
-        method: timeRange === 'all' ? 'GET' : 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: timeRange !== 'all' ? JSON.stringify({ timeRange }) : undefined,
-      });
+      const response = await fetch('/api/dashboard');
       
       if (!response.ok) throw new Error('Failed to fetch data');
       
@@ -103,7 +83,441 @@ export default function Dashboard() {
     } finally {
       setLoading(false);
     }
-  }, [timeRange]);
+  }, []);
+
+  const toggleTheme = useCallback(() => {
+    const newTheme = theme === "dark" ? "light" : "dark";
+    setTheme(newTheme);
+    // Apply theme to document root
+    if (mounted) {
+      document.documentElement.className = newTheme;
+      localStorage.setItem('dashboard-theme', newTheme);
+    }
+  }, [theme, mounted]);
+
+  // Initialize theme from localStorage
+  useEffect(() => {
+    if (mounted) {
+      const savedTheme = localStorage.getItem('dashboard-theme') as "dark" | "light" | null;
+      if (savedTheme && savedTheme !== theme) {
+        setTheme(savedTheme);
+        document.documentElement.className = savedTheme;
+      } else {
+        document.documentElement.className = theme;
+      }
+    }
+  }, [mounted, theme]);
+
+  // Mock data for different sections
+  const mockSectionData = {
+    YouTube: {
+      title: "YouTube Analytics",
+      metrics: [
+        { label: "Total Views", value: "2.4M", change: "+12.5%" },
+        { label: "Subscribers", value: "45.2K", change: "+8.3%" },
+        { label: "Watch Time", value: "156K hrs", change: "+15.2%" },
+        { label: "Engagement Rate", value: "4.8%", change: "+2.1%" }
+      ]
+    },
+    Calls: {
+      title: "Call Management",
+      metrics: [
+        { label: "Scheduled Calls", value: "127", change: "+18%" },
+        { label: "Completed Calls", value: "98", change: "+22%" },
+        { label: "Show-up Rate", value: "77.2%", change: "+5.1%" },
+        { label: "Avg Call Duration", value: "42 min", change: "+3 min" }
+      ]
+    },
+    Revenue: {
+      title: "Revenue Dashboard",
+      metrics: [
+        { label: "Monthly Revenue", value: "$89.5K", change: "+24.3%" },
+        { label: "Average Deal Size", value: "$2,850", change: "+12%" },
+        { label: "Conversion Rate", value: "18.5%", change: "+3.2%" },
+        { label: "Lifetime Value", value: "$8,450", change: "+15%" }
+      ]
+    },
+    Leads: {
+      title: "Lead Generation",
+      metrics: [
+        { label: "New Leads", value: "342", change: "+28%" },
+        { label: "Qualified Leads", value: "156", change: "+19%" },
+        { label: "Lead Score Avg", value: "78.5", change: "+5.2%" },
+        { label: "Cost per Lead", value: "$45", change: "-12%" }
+      ]
+    },
+    Analytics: {
+      title: "Advanced Analytics",
+      metrics: [
+        { label: "Traffic Sources", value: "12", change: "+2" },
+        { label: "Bounce Rate", value: "32.1%", change: "-8.5%" },
+        { label: "Session Duration", value: "4m 32s", change: "+45s" },
+        { label: "Page Views", value: "18.7K", change: "+16%" }
+      ]
+    },
+    "AI Insights": {
+      title: "AI-Powered Insights",
+      metrics: [
+        { label: "Predictions Made", value: "1,247", change: "+156" },
+        { label: "Accuracy Rate", value: "94.2%", change: "+2.1%" },
+        { label: "Recommendations", value: "23", change: "+8" },
+        { label: "Automation Score", value: "87%", change: "+12%" }
+      ]
+    },
+    Settings: {
+      title: "System Settings",
+      metrics: [
+        { label: "Active Integrations", value: "8", change: "+2" },
+        { label: "API Calls Today", value: "2.1K", change: "+340" },
+        { label: "Storage Used", value: "67%", change: "+5%" },
+        { label: "Uptime", value: "99.9%", change: "0%" }
+      ]
+    }
+  };
+
+  const handleSectionClick = useCallback((section: string) => {
+    setActiveSection(section);
+    console.log(`Navigating to ${section} section`);
+  }, []);
+
+  const handleMetricClick = useCallback((metric: string) => {
+    setSelectedMetric(metric);
+    setShowDetailModal(true);
+    console.log(`Viewing details for ${metric}`);
+  }, []);
+
+  const handleCardClick = useCallback((cardType: string) => {
+    console.log(`${cardType} card clicked - showing detailed view`);
+    setSelectedMetric(cardType);
+    setShowDetailModal(true);
+  }, []);
+
+  const handleQuickAction = useCallback(async (actionName: string, description: string) => {
+    // Prevent multiple clicks
+    if (quickActionLoading) return;
+    
+    setQuickActionLoading(actionName);
+    console.log(`Quick Action: ${actionName}`);
+    
+    try {
+      // Show a visual feedback with the action
+      setSelectedMetric(actionName);
+      setShowDetailModal(true);
+      
+      // Special handling for specific actions
+      switch (actionName) {
+        case 'Refresh Data':
+          await fetchDashboardData();
+          break;
+        case 'View Report':
+          // Navigate to analytics section
+          setActiveSection('Analytics');
+          // Close modal after navigation
+          setTimeout(() => setShowDetailModal(false), 1500);
+          break;
+        case 'Export Data':
+          // Simulate data export
+          await new Promise((resolve) => {
+            setTimeout(() => {
+              if (data) {
+                const element = document.createElement('a');
+                const file = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                element.href = URL.createObjectURL(file);
+                element.download = `dashboard-data-${new Date().toISOString().split('T')[0]}.json`;
+                document.body.appendChild(element);
+                element.click();
+                document.body.removeChild(element);
+              }
+              resolve(void 0);
+            }, 1000);
+          });
+          break;
+        case 'AI Analysis':
+          setActiveSection('AI Insights');
+          setTimeout(() => setShowDetailModal(false), 1500);
+          break;
+        case 'Set Alert':
+          // Simulate alert creation
+          await new Promise(resolve => setTimeout(resolve, 800));
+          break;
+        case 'Schedule Review':
+          // Simulate scheduling
+          await new Promise(resolve => setTimeout(resolve, 600));
+          break;
+        default:
+          console.log(`Executing: ${description}`);
+          await new Promise(resolve => setTimeout(resolve, 500));
+      }
+    } catch (error) {
+      console.error('Quick Action failed:', error);
+    } finally {
+      setQuickActionLoading(null);
+    }
+  }, [data, fetchDashboardData, quickActionLoading]);
+
+  // Function to render section-specific content
+  const renderSectionContent = () => {
+    const sectionData = mockSectionData[activeSection as keyof typeof mockSectionData];
+    
+    if (!sectionData) {
+      return renderDefaultDashboard();
+    }
+
+    return (
+      <Card className={`backdrop-blur-xl overflow-hidden transition-all duration-300 hover:backdrop-blur-2xl hover:shadow-2xl hover:scale-[1.01] ${
+        theme === 'dark' 
+          ? 'bg-slate-900/20 border-slate-700/20 hover:bg-slate-900/30 hover:border-slate-600/30' 
+          : 'bg-white/10 border-white/20 hover:bg-white/20 hover:border-white/30 shadow-lg hover:shadow-slate-200/20'
+      }`}>
+        <CardHeader className={`pb-3 ${
+          theme === 'dark' ? 'border-b border-slate-700/50' : 'border-b border-slate-200/50'
+        }`}>
+          <div className="flex items-center justify-between">
+            <CardTitle className={`flex items-center ${
+              theme === 'dark' ? 'text-slate-100' : 'text-slate-900'
+            }`}>
+              {getIconForSection(activeSection)} 
+              {sectionData.title}
+            </CardTitle>
+            <div className="flex items-center space-x-2">
+              <Badge variant="outline" className={`text-xs ${
+                theme === 'dark' 
+                  ? 'bg-slate-800/50 text-cyan-400 border-cyan-500/50' 
+                  : 'bg-slate-100/50 text-cyan-600 border-cyan-400/50'
+              }`}>
+                <div className="h-1.5 w-1.5 rounded-full bg-cyan-500 mr-1 animate-pulse"></div>
+                LIVE
+              </Badge>
+              <Button variant="ghost" size="icon" className={`h-8 w-8 ${
+                theme === 'dark' ? 'text-slate-400' : 'text-slate-600'
+              }`} onClick={fetchDashboardData}>
+                <RefreshCw className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {sectionData.metrics.map((metric, index) => (
+              <div key={metric.label} className="animate-slide-in-up hover-lift" style={{ animationDelay: `${index * 0.1}s` }}>
+                <div 
+                  className={`p-4 rounded-lg cursor-pointer transition-all duration-300 backdrop-blur-md hover:backdrop-blur-lg hover:scale-105 hover:shadow-xl ${
+                    theme === 'dark' 
+                      ? 'bg-slate-800/20 border border-slate-700/30 hover:bg-slate-700/30 hover:border-slate-600/40 hover:shadow-slate-900/50' 
+                      : 'bg-white/20 border border-white/30 hover:bg-white/30 hover:border-white/40 hover:shadow-slate-200/30'
+                  }`}
+                  onClick={() => handleMetricClick(metric.label)}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className={`text-sm ${
+                      theme === 'dark' ? 'text-slate-400' : 'text-slate-600'
+                    }`}>{metric.label}</span>
+                    <span className={`text-xs px-2 py-1 rounded-full ${
+                      metric.change.startsWith('+') 
+                        ? theme === 'dark' ? 'bg-green-900/50 text-green-400' : 'bg-green-100 text-green-600'
+                        : metric.change.startsWith('-') 
+                        ? theme === 'dark' ? 'bg-red-900/50 text-red-400' : 'bg-red-100 text-red-600'
+                        : theme === 'dark' ? 'bg-slate-800/50 text-slate-400' : 'bg-slate-100 text-slate-600'
+                    }`}>
+                      {metric.change}
+                    </span>
+                  </div>
+                  <div className={`text-2xl font-bold ${
+                    theme === 'dark' ? 'text-slate-100' : 'text-slate-900'
+                  }`}>{metric.value}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
+
+  const getIconForSection = (section: string) => {
+    const iconMap: Record<string, React.ReactElement> = {
+      Dashboard: <Activity className="mr-2 h-5 w-5 text-cyan-500" />,
+      YouTube: <PlayIcon className="mr-2 h-5 w-5 text-red-500" />,
+      Calls: <PhoneIcon className="mr-2 h-5 w-5 text-blue-500" />,
+      Revenue: <CurrencyDollarIcon className="mr-2 h-5 w-5 text-green-500" />,
+      Leads: <UserGroupIcon className="mr-2 h-5 w-5 text-purple-500" />,
+      Analytics: <BarChart3 className="mr-2 h-5 w-5 text-orange-500" />,
+      "AI Insights": <Terminal className="mr-2 h-5 w-5 text-purple-500" />,
+      Settings: <Settings className="mr-2 h-5 w-5 text-slate-500" />
+    };
+    return iconMap[section] || <Activity className="mr-2 h-5 w-5 text-cyan-500" />;
+  };
+
+  const renderDefaultDashboard = () => {
+    return (
+      <Card className={`backdrop-blur-xl overflow-hidden transition-all duration-300 hover:backdrop-blur-2xl hover:shadow-2xl hover:scale-[1.01] ${
+        theme === 'dark' 
+          ? 'bg-slate-900/20 border-slate-700/20 hover:bg-slate-900/30 hover:border-slate-600/30' 
+          : 'bg-white/10 border-white/20 hover:bg-white/20 hover:border-white/30 shadow-lg hover:shadow-slate-200/20'
+      }`}>
+        <CardHeader className={`pb-3 ${
+          theme === 'dark' ? 'border-b border-slate-700/50' : 'border-b border-slate-200/50'
+        }`}>
+          <div className="flex items-center justify-between">
+            <CardTitle 
+              className={`flex items-center cursor-pointer transition-colors ${
+                theme === 'dark' 
+                  ? 'text-slate-100 hover:text-cyan-400' 
+                  : 'text-slate-900 hover:text-cyan-600'
+              }`}
+              onClick={() => handleSectionClick("Dashboard")}
+            >
+              <Activity className="mr-2 h-5 w-5 text-cyan-500" />
+              Coaching Business Overview
+            </CardTitle>
+            <div className="flex items-center space-x-2">
+              <Badge variant="outline" className={`text-xs ${
+                theme === 'dark' 
+                  ? 'bg-slate-800/50 text-cyan-400 border-cyan-500/50' 
+                  : 'bg-slate-100/50 text-cyan-600 border-cyan-400/50'
+              }`}>
+                <div className="h-1.5 w-1.5 rounded-full bg-cyan-500 mr-1 animate-pulse"></div>
+                LIVE
+              </Badge>
+              <Button variant="ghost" size="icon" className={`h-8 w-8 ${
+                theme === 'dark' ? 'text-slate-400' : 'text-slate-600'
+              }`} onClick={fetchDashboardData}>
+                <RefreshCw className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="animate-slide-in-up hover-lift">
+              <CoachingMetricCard
+                title="YouTube Views"
+                value={currentMonth.youtubeViews}
+                icon={PlayIcon}
+                trend={previousMonth && currentMonth.youtubeViews > previousMonth.youtubeViews ? "up" : "down"}
+                color="cyan"
+                detail={`${currentMonth.youtubeUniqueViews.toLocaleString()} unique`}
+                onClick={() => handleCardClick("YouTube Views")}
+                theme={theme}
+              />
+            </div>
+            <div className="animate-slide-in-up hover-lift" style={{ animationDelay: '0.1s' }}>
+              <CoachingMetricCard
+                title="Revenue"
+                value={currentMonth.newCashCollected.total}
+                icon={CurrencyDollarIcon}
+                trend={previousMonth && currentMonth.newCashCollected.total > previousMonth.newCashCollected.total ? "up" : "stable"}
+                color="purple"
+                detail={`$${currentMonth.totalCashCollected.toLocaleString()} total`}
+                onClick={() => handleCardClick("Revenue")}
+                theme={theme}
+              />
+            </div>
+            <div className="animate-slide-in-up hover-lift" style={{ animationDelay: '0.2s' }}>
+              <CoachingMetricCard
+                title="Conversion Rate"
+                value={Math.round(currentMonth.conversionRates.acceptedToSale)}
+                icon={TrophyIcon}
+                trend="up"
+                color="blue"
+                detail={`${currentMonth.callsBooked} calls booked`}
+                onClick={() => handleCardClick("Conversion Rate")}
+                theme={theme}
+              />
+            </div>
+          </div>
+
+          <div className="mt-8">
+            <Tabs defaultValue="funnel" className="w-full">
+              <div className="flex items-center justify-between mb-4">
+                <TabsList className={`p-1 backdrop-blur-xl transition-all duration-300 hover:backdrop-blur-2xl ${
+                  theme === 'dark' ? 'bg-slate-800/30 hover:bg-slate-800/40' : 'bg-white/30 hover:bg-white/40'
+                }`}>
+                  <TabsTrigger
+                    value="funnel"
+                    className={`${
+                      theme === 'dark' 
+                        ? 'data-[state=active]:bg-slate-700 data-[state=active]:text-cyan-400' 
+                        : 'data-[state=active]:bg-white data-[state=active]:text-cyan-600'
+                    }`}
+                  >
+                    Sales Funnel
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="trends"
+                    className={`${
+                      theme === 'dark' 
+                        ? 'data-[state=active]:bg-slate-700 data-[state=active]:text-cyan-400' 
+                        : 'data-[state=active]:bg-white data-[state=active]:text-cyan-600'
+                    }`}
+                  >
+                    Revenue Trends
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="videos"
+                    className={`${
+                      theme === 'dark' 
+                        ? 'data-[state=active]:bg-slate-700 data-[state=active]:text-cyan-400' 
+                        : 'data-[state=active]:bg-white data-[state=active]:text-cyan-600'
+                    }`}
+                  >
+                    Top Videos
+                  </TabsTrigger>
+                </TabsList>
+
+                <div className={`flex items-center space-x-2 text-xs ${
+                  theme === 'dark' ? 'text-slate-400' : 'text-slate-600'
+                }`}>
+                  <div className="flex items-center">
+                    <div className="h-2 w-2 rounded-full bg-cyan-500 mr-1"></div>
+                    Views
+                  </div>
+                  <div className="flex items-center">
+                    <div className="h-2 w-2 rounded-full bg-purple-500 mr-1"></div>
+                    Revenue
+                  </div>
+                  <div className="flex items-center">
+                    <div className="h-2 w-2 rounded-full bg-blue-500 mr-1"></div>
+                    Calls
+                  </div>
+                </div>
+              </div>
+
+              <TabsContent value="funnel" className="mt-0">
+                <div className={`h-64 w-full relative rounded-lg overflow-hidden backdrop-blur-xl transition-all duration-300 hover:backdrop-blur-2xl hover:shadow-xl ${
+                  theme === 'dark' 
+                    ? 'bg-slate-800/20 border border-slate-700/30 hover:bg-slate-800/30 hover:border-slate-600/40' 
+                    : 'bg-white/20 border border-white/30 hover:bg-white/30 hover:border-white/40 shadow-lg hover:shadow-slate-200/20'
+                }`}>
+                  <FunnelChart data={currentMonth} />
+                </div>
+              </TabsContent>
+
+               <TabsContent value="trends" className="mt-0">
+                 <div className={`h-64 w-full relative rounded-lg overflow-hidden backdrop-blur-xl transition-all duration-300 hover:backdrop-blur-2xl hover:shadow-xl ${
+                   theme === 'dark' 
+                     ? 'bg-slate-800/20 border border-slate-700/30 hover:bg-slate-800/30 hover:border-slate-600/40' 
+                     : 'bg-white/20 border border-white/30 hover:bg-white/30 hover:border-white/40 shadow-lg hover:shadow-slate-200/20'
+                 }`}>
+                   {data && <TrendsChart data={data.monthlyMetrics} metric="revenue" />}
+                 </div>
+               </TabsContent>
+
+               <TabsContent value="videos" className="mt-0">
+                 <div className={`h-64 w-full relative rounded-lg overflow-hidden p-4 backdrop-blur-xl transition-all duration-300 hover:backdrop-blur-2xl hover:shadow-xl ${
+                   theme === 'dark' 
+                     ? 'bg-slate-800/20 border border-slate-700/30 hover:bg-slate-800/30 hover:border-slate-600/40' 
+                     : 'bg-white/20 border border-white/30 hover:bg-white/30 hover:border-white/40 shadow-lg hover:shadow-slate-200/20'
+                 }`}>
+                   {data && <VideoPerformanceTable videos={data.videos.slice(0, 5)} />}
+                 </div>
+               </TabsContent>
+            </Tabs>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
 
   useEffect(() => {
     fetchDashboardData();
@@ -137,7 +551,7 @@ export default function Dashboard() {
     if (!mounted) return;
     
     const interval = setInterval(() => {
-      setSystemStatus(Math.floor(Math.random() * 10) + 80);
+      // System status simulation removed
     }, 3000);
 
     return () => clearInterval(interval);
@@ -228,9 +642,39 @@ export default function Dashboard() {
     };
   }, [mounted]);
 
-  const toggleTheme = () => {
-    setTheme(theme === "dark" ? "light" : "dark");
-  };
+  // Keyboard shortcuts
+  useEffect(() => {
+    if (!mounted) return;
+    
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Cmd/Ctrl + K to open search
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setSearchOpen(true);
+      }
+      
+      // Cmd/Ctrl + R to refresh data
+      if ((e.metaKey || e.ctrlKey) && e.key === 'r') {
+        e.preventDefault();
+        fetchDashboardData();
+      }
+      
+      // Cmd/Ctrl + D to toggle theme
+      if ((e.metaKey || e.ctrlKey) && e.key === 'd') {
+        e.preventDefault();
+        toggleTheme();
+      }
+      
+      // Cmd/Ctrl + L to toggle loading state (for demo)
+      if ((e.metaKey || e.ctrlKey) && e.key === 'l') {
+        e.preventDefault();
+        setIsLoading(!isLoading);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [mounted, isLoading, fetchDashboardData, toggleTheme]);
 
   const formatTime = (date: Date | null) => {
     if (!date) return "--:--:--";
@@ -291,10 +735,7 @@ export default function Dashboard() {
   const currentMonth = data.monthlyMetrics[selectedMonth] || data.monthlyMetrics[data.monthlyMetrics.length - 1];
   const previousMonth = data.monthlyMetrics[data.monthlyMetrics.length - 2];
   
-  const calculateChange = (current: number, previous: number) => {
-    if (!previous) return 0;
-    return ((current - previous) / previous) * 100;
-  };
+
 
   const formatMonth = (month: string) => {
     return new Date(month + '-01').toLocaleDateString('en-US', { 
@@ -303,23 +744,172 @@ export default function Dashboard() {
     });
   };
 
+  // Modal Component
+  const DetailModal = () => {
+    if (!showDetailModal || !selectedMetric) return null;
+
+    const currentSectionData = mockSectionData[activeSection as keyof typeof mockSectionData];
+    
+    return (
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="bg-slate-900/95 border border-slate-700/50 rounded-lg max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+          <div className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-slate-100">{selectedMetric} Details</h2>
+              <button
+                onClick={() => setShowDetailModal(false)}
+                className="text-slate-400 hover:text-slate-100 transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                {currentSectionData?.metrics.map((metric, index) => (
+                  <div key={index} className="bg-slate-800/50 p-4 rounded-lg border border-slate-700/50">
+                    <div className="text-sm text-slate-400 mb-1">{metric.label}</div>
+                    <div className="text-2xl font-bold text-slate-100 mb-1">{metric.value}</div>
+                    <div className={`text-xs ${metric.change.startsWith('+') ? 'text-green-400' : metric.change.startsWith('-') ? 'text-red-400' : 'text-slate-400'}`}>
+                      {metric.change} from last month
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              <div className="mt-6 p-4 bg-slate-800/30 rounded-lg border border-slate-700/50">
+                <h3 className="text-sm font-medium text-slate-200 mb-2">Quick Actions</h3>
+                <div className="flex flex-wrap gap-2">
+                  <button 
+                    onClick={() => handleQuickAction('View Report', 'Generating detailed analytics report...')}
+                    disabled={quickActionLoading === 'View Report'}
+                    className={`px-3 py-1 bg-cyan-500/20 text-cyan-400 rounded-md text-xs hover:bg-cyan-500/30 transition-all duration-200 hover:scale-105 flex items-center gap-1 ${
+                      quickActionLoading === 'View Report' ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
+                  >
+                    {quickActionLoading === 'View Report' ? (
+                      <RefreshCw className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <BarChart3 className="w-3 h-3" />
+                    )}
+                    View Report
+                  </button>
+                  <button 
+                    onClick={() => handleQuickAction('Export Data', 'Preparing CSV export with current metrics...')}
+                    disabled={quickActionLoading === 'Export Data'}
+                    className={`px-3 py-1 bg-purple-500/20 text-purple-400 rounded-md text-xs hover:bg-purple-500/30 transition-all duration-200 hover:scale-105 flex items-center gap-1 ${
+                      quickActionLoading === 'Export Data' ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
+                  >
+                    {quickActionLoading === 'Export Data' ? (
+                      <RefreshCw className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <Download className="w-3 h-3" />
+                    )}
+                    Export Data
+                  </button>
+                  <button 
+                    onClick={() => handleQuickAction('Set Alert', 'Creating performance monitoring alert...')}
+                    disabled={quickActionLoading === 'Set Alert'}
+                    className={`px-3 py-1 bg-blue-500/20 text-blue-400 rounded-md text-xs hover:bg-blue-500/30 transition-all duration-200 hover:scale-105 flex items-center gap-1 ${
+                      quickActionLoading === 'Set Alert' ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
+                  >
+                    {quickActionLoading === 'Set Alert' ? (
+                      <RefreshCw className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <Bell className="w-3 h-3" />
+                    )}
+                    Set Alert
+                  </button>
+                  <button 
+                    onClick={() => handleQuickAction('Schedule Review', 'Scheduling weekly performance review...')}
+                    disabled={quickActionLoading === 'Schedule Review'}
+                    className={`px-3 py-1 bg-green-500/20 text-green-400 rounded-md text-xs hover:bg-green-500/30 transition-all duration-200 hover:scale-105 flex items-center gap-1 ${
+                      quickActionLoading === 'Schedule Review' ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
+                  >
+                    {quickActionLoading === 'Schedule Review' ? (
+                      <RefreshCw className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <Calendar className="w-3 h-3" />
+                    )}
+                    Schedule Review
+                  </button>
+                  <button 
+                    onClick={() => handleQuickAction('Refresh Data', 'Fetching latest analytics data...')}
+                    disabled={quickActionLoading === 'Refresh Data'}
+                    className={`px-3 py-1 bg-orange-500/20 text-orange-400 rounded-md text-xs hover:bg-orange-500/30 transition-all duration-200 hover:scale-105 flex items-center gap-1 ${
+                      quickActionLoading === 'Refresh Data' ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
+                  >
+                    {quickActionLoading === 'Refresh Data' ? (
+                      <RefreshCw className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <RefreshCw className="w-3 h-3" />
+                    )}
+                    Refresh Data
+                  </button>
+                  <button 
+                    onClick={() => handleQuickAction('AI Analysis', 'Running AI-powered performance analysis...')}
+                    disabled={quickActionLoading === 'AI Analysis'}
+                    className={`px-3 py-1 bg-indigo-500/20 text-indigo-400 rounded-md text-xs hover:bg-indigo-500/30 transition-all duration-200 hover:scale-105 flex items-center gap-1 ${
+                      quickActionLoading === 'AI Analysis' ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
+                  >
+                    {quickActionLoading === 'AI Analysis' ? (
+                      <RefreshCw className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <Zap className="w-3 h-3" />
+                    )}
+                    AI Analysis
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
-    <div className={`${theme} min-h-screen bg-gradient-to-br from-black to-slate-900 text-slate-100 relative overflow-hidden`}>
+    <div className={`${theme} min-h-screen transition-colors duration-300 ${
+      theme === 'dark' 
+        ? 'bg-gradient-to-br from-black to-slate-900 text-slate-100' 
+        : 'bg-gradient-to-br from-slate-50 to-slate-200 text-slate-900'
+    } relative overflow-hidden`}>
       {/* Background particle effect */}
       <canvas ref={canvasRef} className="absolute inset-0 w-full h-full opacity-30" />
+      
+      {/* Detail Modal */}
+      <DetailModal />
 
       {/* Loading overlay */}
       {isLoading && (
-        <div className="absolute inset-0 bg-black/80 flex items-center justify-center z-50">
+        <div className="absolute inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in-scale">
           <div className="flex flex-col items-center">
-            <div className="relative w-24 h-24">
-              <div className="absolute inset-0 border-4 border-cyan-500/30 rounded-full animate-ping"></div>
+            <div className="relative w-32 h-32 mb-8">
+              <div className="absolute inset-0 border-4 border-cyan-500/20 rounded-full animate-ping"></div>
               <div className="absolute inset-2 border-4 border-t-cyan-500 border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin"></div>
               <div className="absolute inset-4 border-4 border-r-purple-500 border-t-transparent border-b-transparent border-l-transparent rounded-full animate-spin-slow"></div>
               <div className="absolute inset-6 border-4 border-b-blue-500 border-t-transparent border-r-transparent border-l-transparent rounded-full animate-spin-slower"></div>
               <div className="absolute inset-8 border-4 border-l-green-500 border-t-transparent border-r-transparent border-b-transparent rounded-full animate-spin"></div>
+              <div className="absolute inset-10 w-12 h-12 bg-gradient-to-r from-cyan-500 to-purple-500 rounded-full animate-pulse-glow"></div>
             </div>
-            <div className="mt-4 text-cyan-500 font-mono text-sm tracking-wider">COACHING SYSTEM INITIALIZING</div>
+            <div className="text-center">
+              <div className="text-2xl font-bold gradient-text mb-2">COACHING NEXUS</div>
+              <div className="text-cyan-400 font-mono text-sm tracking-wider animate-shimmer">
+                INITIALIZING WORLD-CLASS ANALYTICS
+              </div>
+              <div className="mt-4 flex space-x-1">
+                <div className="w-2 h-2 bg-cyan-500 rounded-full animate-bounce"></div>
+                <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -327,37 +917,25 @@ export default function Dashboard() {
       <div className="container mx-auto p-4 relative z-10">
         {/* Header */}
         <header className="flex items-center justify-between py-4 border-b border-slate-700/50 mb-6">
-          <div className="flex items-center space-x-2">
-            <Hexagon className="h-8 w-8 text-cyan-500" />
-            <span className="text-xl font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
-              COACHING NEXUS
+          <div className="flex items-center space-x-2 animate-fade-in-scale">
+            <Hexagon className="h-8 w-8 text-cyan-500 animate-float" />
+            <span className="text-xl font-bold gradient-text">
+              NextGen Dashboard
             </span>
           </div>
 
-          <div className="flex items-center space-x-6">
-            <div className="hidden md:flex items-center space-x-1 bg-slate-800/50 rounded-full px-3 py-1.5 border border-slate-700/50 backdrop-blur-sm">
-              <Search className="h-4 w-4 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Search metrics..."
-                className="bg-transparent border-none focus:outline-none text-sm w-40 placeholder:text-slate-500"
-              />
-            </div>
+                      <div className="flex items-center space-x-6">
+            <AdvancedSearch 
+              isOpen={searchOpen}
+              onClose={() => setSearchOpen(false)}
+              onSearch={(query) => {
+                console.log('Search:', query);
+                setSearchOpen(false);
+              }}
+            />
 
             <div className="flex items-center space-x-3">
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" className="relative text-slate-400 hover:text-slate-100">
-                      <Bell className="h-5 w-5" />
-                      <span className="absolute -top-1 -right-1 h-2 w-2 bg-cyan-500 rounded-full animate-pulse"></span>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Notifications</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              <NotificationCenter />
 
               <TooltipProvider>
                 <Tooltip>
@@ -372,7 +950,10 @@ export default function Dashboard() {
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>Toggle theme</p>
+                    <div className="text-xs">
+                      <p>Toggle theme (⌘D)</p>
+                      <p className="text-slate-400 mt-1">⌘R: Refresh • ⌘K: Search • ⌘L: Loading</p>
+                    </div>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -389,27 +970,70 @@ export default function Dashboard() {
         <div className="grid grid-cols-12 gap-6">
           {/* Sidebar */}
           <div className="col-span-12 md:col-span-3 lg:col-span-2">
-            <Card className="bg-slate-900/50 border-slate-700/50 backdrop-blur-sm h-full">
+            <Card className={`backdrop-blur-xl h-full transition-all duration-300 hover:backdrop-blur-2xl hover:shadow-xl ${
+              theme === 'dark' 
+                ? 'bg-slate-900/20 border-slate-700/20 hover:bg-slate-900/30 hover:border-slate-600/30' 
+                : 'bg-white/10 border-white/20 hover:bg-white/20 hover:border-white/30 shadow-lg hover:shadow-slate-200/20'
+            }`}>
               <CardContent className="p-4">
                 <nav className="space-y-2">
-                  <NavItem icon={Command} label="Dashboard" active />
-                  <NavItem icon={PlayIcon} label="YouTube" />
-                  <NavItem icon={PhoneIcon} label="Calls" />
-                  <NavItem icon={CurrencyDollarIcon} label="Revenue" />
-                  <NavItem icon={UserGroupIcon} label="Leads" />
-                  <NavItem icon={BarChart3} label="Analytics" />
-                  <NavItem icon={Terminal} label="AI Insights" />
-                  <NavItem icon={Settings} label="Settings" />
+                  <NavItem 
+                    icon={Command} 
+                    label="Dashboard" 
+                    active={activeSection === "Dashboard"} 
+                    onClick={() => handleSectionClick("Dashboard")}
+                    theme={theme}
+                  />
+                  <NavItem 
+                    icon={PlayIcon} 
+                    label="YouTube" 
+                    active={activeSection === "YouTube"}
+                    onClick={() => handleSectionClick("YouTube")}
+                    theme={theme}
+                  />
+                  <NavItem 
+                    icon={PhoneIcon} 
+                    label="Calls" 
+                    active={activeSection === "Calls"}
+                    onClick={() => handleSectionClick("Calls")}
+                    theme={theme}
+                  />
+                  <NavItem 
+                    icon={CurrencyDollarIcon} 
+                    label="Revenue" 
+                    active={activeSection === "Revenue"}
+                    onClick={() => handleSectionClick("Revenue")}
+                    theme={theme}
+                  />
+                  <NavItem 
+                    icon={UserGroupIcon} 
+                    label="Leads" 
+                    active={activeSection === "Leads"}
+                    onClick={() => handleSectionClick("Leads")}
+                    theme={theme}
+                  />
+                  <NavItem 
+                    icon={BarChart3} 
+                    label="Analytics" 
+                    active={activeSection === "Analytics"}
+                    onClick={() => handleSectionClick("Analytics")}
+                    theme={theme}
+                  />
+                  <NavItem 
+                    icon={Terminal} 
+                    label="AI Insights" 
+                    active={activeSection === "AI Insights"}
+                    onClick={() => handleSectionClick("AI Insights")}
+                    theme={theme}
+                  />
+                  <NavItem 
+                    icon={Settings} 
+                    label="Settings" 
+                    active={activeSection === "Settings"}
+                    onClick={() => handleSectionClick("Settings")}
+                    theme={theme}
+                  />
                 </nav>
-
-                <div className="mt-8 pt-6 border-t border-slate-700/50">
-                  <div className="text-xs text-slate-500 mb-2 font-mono">SYSTEM STATUS</div>
-                  <div className="space-y-3">
-                    <StatusItem label="YouTube API" value={92} color="cyan" />
-                    <StatusItem label="Sales Funnel" value={85} color="green" />
-                    <StatusItem label="Lead Network" value={78} color="blue" />
-                  </div>
-                </div>
               </CardContent>
             </Card>
           </div>
@@ -417,114 +1041,7 @@ export default function Dashboard() {
           {/* Main dashboard */}
           <div className="col-span-12 md:col-span-9 lg:col-span-7">
             <div className="grid gap-6">
-              {/* System overview */}
-              <Card className="bg-slate-900/50 border-slate-700/50 backdrop-blur-sm overflow-hidden">
-                <CardHeader className="border-b border-slate-700/50 pb-3">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-slate-100 flex items-center">
-                      <Activity className="mr-2 h-5 w-5 text-cyan-500" />
-                      Coaching Business Overview
-                    </CardTitle>
-                    <div className="flex items-center space-x-2">
-                      <Badge variant="outline" className="bg-slate-800/50 text-cyan-400 border-cyan-500/50 text-xs">
-                        <div className="h-1.5 w-1.5 rounded-full bg-cyan-500 mr-1 animate-pulse"></div>
-                        LIVE
-                      </Badge>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400" onClick={fetchDashboardData}>
-                        <RefreshCw className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="p-6">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <CoachingMetricCard
-                      title="YouTube Views"
-                      value={currentMonth.youtubeViews}
-                      icon={PlayIcon}
-                      trend={previousMonth && currentMonth.youtubeViews > previousMonth.youtubeViews ? "up" : "down"}
-                      color="cyan"
-                      detail={`${currentMonth.youtubeUniqueViews.toLocaleString()} unique`}
-                    />
-                    <CoachingMetricCard
-                      title="Revenue"
-                      value={currentMonth.newCashCollected.total}
-                      icon={CurrencyDollarIcon}
-                      trend={previousMonth && currentMonth.newCashCollected.total > previousMonth.newCashCollected.total ? "up" : "stable"}
-                      color="purple"
-                      detail={`$${currentMonth.totalCashCollected.toLocaleString()} total`}
-                    />
-                    <CoachingMetricCard
-                      title="Conversion Rate"
-                      value={Math.round(currentMonth.conversionRates.acceptedToSale)}
-                      icon={TrophyIcon}
-                      trend="up"
-                      color="blue"
-                      detail={`${currentMonth.callsBooked} calls booked`}
-                    />
-                  </div>
-
-                  <div className="mt-8">
-                    <Tabs defaultValue="funnel" className="w-full">
-                      <div className="flex items-center justify-between mb-4">
-                        <TabsList className="bg-slate-800/50 p-1">
-                          <TabsTrigger
-                            value="funnel"
-                            className="data-[state=active]:bg-slate-700 data-[state=active]:text-cyan-400"
-                          >
-                            Sales Funnel
-                          </TabsTrigger>
-                          <TabsTrigger
-                            value="trends"
-                            className="data-[state=active]:bg-slate-700 data-[state=active]:text-cyan-400"
-                          >
-                            Revenue Trends
-                          </TabsTrigger>
-                          <TabsTrigger
-                            value="videos"
-                            className="data-[state=active]:bg-slate-700 data-[state=active]:text-cyan-400"
-                          >
-                            Top Videos
-                          </TabsTrigger>
-                        </TabsList>
-
-                        <div className="flex items-center space-x-2 text-xs text-slate-400">
-                          <div className="flex items-center">
-                            <div className="h-2 w-2 rounded-full bg-cyan-500 mr-1"></div>
-                            Views
-                          </div>
-                          <div className="flex items-center">
-                            <div className="h-2 w-2 rounded-full bg-purple-500 mr-1"></div>
-                            Revenue
-                          </div>
-                          <div className="flex items-center">
-                            <div className="h-2 w-2 rounded-full bg-blue-500 mr-1"></div>
-                            Calls
-                          </div>
-                        </div>
-                      </div>
-
-                      <TabsContent value="funnel" className="mt-0">
-                        <div className="h-64 w-full relative bg-slate-800/30 rounded-lg border border-slate-700/50 overflow-hidden">
-                          <FunnelChart data={currentMonth} />
-                        </div>
-                      </TabsContent>
-
-                      <TabsContent value="trends" className="mt-0">
-                        <div className="h-64 w-full relative bg-slate-800/30 rounded-lg border border-slate-700/50 overflow-hidden">
-                          <TrendsChart data={data.monthlyMetrics} metric="revenue" />
-                        </div>
-                      </TabsContent>
-
-                      <TabsContent value="videos" className="mt-0">
-                        <div className="h-64 w-full relative bg-slate-800/30 rounded-lg border border-slate-700/50 overflow-hidden p-4">
-                          <VideoPerformanceTable videos={data.videos.slice(0, 5)} />
-                        </div>
-                      </TabsContent>
-                    </Tabs>
-                  </div>
-                </CardContent>
-              </Card>
+              {activeSection === "Dashboard" ? renderDefaultDashboard() : renderSectionContent()}
             </div>
           </div>
 
@@ -532,22 +1049,41 @@ export default function Dashboard() {
           <div className="col-span-12 lg:col-span-3">
             <div className="grid gap-6">
               {/* AI Insights */}
-              <Card className="bg-slate-900/50 border-slate-700/50 backdrop-blur-sm">
-                <CardHeader className="border-b border-slate-700/50 pb-3">
-                  <CardTitle className="text-slate-100 flex items-center text-sm">
+              <Card className={`backdrop-blur-xl transition-all duration-300 hover:backdrop-blur-2xl hover:shadow-xl hover:scale-[1.02] ${
+                theme === 'dark' 
+                  ? 'bg-slate-900/20 border-slate-700/20 hover:bg-slate-900/30 hover:border-slate-600/30' 
+                  : 'bg-white/10 border-white/20 hover:bg-white/20 hover:border-white/30 shadow-lg hover:shadow-slate-200/20'
+              }`}>
+                <CardHeader 
+                  className={`pb-3 cursor-pointer transition-colors ${
+                    theme === 'dark' 
+                      ? 'border-b border-slate-700/50 hover:bg-slate-800/30' 
+                      : 'border-b border-slate-200/50 hover:bg-slate-100/30'
+                  }`}
+                  onClick={() => handleSectionClick("AI Insights")}
+                >
+                  <CardTitle className={`flex items-center text-sm ${
+                    theme === 'dark' ? 'text-slate-100' : 'text-slate-900'
+                  }`}>
                     <Terminal className="mr-2 h-4 w-4 text-purple-500" />
                     AI Insights
+                    <svg className={`w-4 h-4 ml-auto ${
+                      theme === 'dark' ? 'text-slate-400' : 'text-slate-600'
+                    }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-4">
                   <div className="space-y-4">
                     {data.aiInsights.slice(0, 3).map((insight, index) => (
                       <AlertItem
-                        key={index}
+                        key={`insight-${insight.title}-${index}`}
                         title={insight.title}
                         time="2m ago"
                         description={insight.description}
                         type={insight.type === 'alert' ? 'warning' : insight.type === 'trend' ? 'success' : 'info'}
+                        onClick={() => handleMetricClick(`AI Insight: ${insight.title}`)}
                       />
                     ))}
                   </div>
@@ -555,46 +1091,114 @@ export default function Dashboard() {
               </Card>
 
               {/* Performance Metrics */}
-              <Card className="bg-slate-900/50 border-slate-700/50 backdrop-blur-sm">
-                <CardHeader className="border-b border-slate-700/50 pb-3">
-                  <CardTitle className="text-slate-100 flex items-center text-sm">
+              <Card className={`backdrop-blur-xl transition-all duration-300 hover:backdrop-blur-2xl hover:shadow-xl hover:scale-[1.02] ${
+                theme === 'dark' 
+                  ? 'bg-slate-900/20 border-slate-700/20 hover:bg-slate-900/30 hover:border-slate-600/30' 
+                  : 'bg-white/10 border-white/20 hover:bg-white/20 hover:border-white/30 shadow-lg hover:shadow-slate-200/20'
+              }`}>
+                <CardHeader 
+                  className={`pb-3 cursor-pointer transition-colors ${
+                    theme === 'dark' 
+                      ? 'border-b border-slate-700/50 hover:bg-slate-800/30' 
+                      : 'border-b border-slate-200/50 hover:bg-slate-100/30'
+                  }`}
+                  onClick={() => handleSectionClick("Analytics")}
+                >
+                  <CardTitle className={`flex items-center text-sm ${
+                    theme === 'dark' ? 'text-slate-100' : 'text-slate-900'
+                  }`}>
                     <BarChart3 className="mr-2 h-4 w-4 text-green-500" />
                     Key Performance
+                    <svg className={`w-4 h-4 ml-auto ${
+                      theme === 'dark' ? 'text-slate-400' : 'text-slate-600'
+                    }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-4">
                   <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                      <span className="text-xs text-slate-400">Show-up Rate</span>
-                      <span className="text-sm font-medium text-slate-200">{currentMonth.showUpRate.toFixed(1)}%</span>
+                    <div 
+                      className={`cursor-pointer p-2 rounded-md transition-all duration-300 backdrop-blur-sm hover:backdrop-blur-md hover:scale-105 ${
+                        theme === 'dark' 
+                          ? 'hover:bg-slate-800/40 hover:shadow-lg hover:shadow-slate-900/50' 
+                          : 'hover:bg-white/40 hover:shadow-lg hover:shadow-slate-200/30'
+                      }`}
+                      onClick={() => handleMetricClick("Show-up Rate")}
+                    >
+                      <div className="flex justify-between items-center">
+                        <span className={`text-xs ${
+                          theme === 'dark' ? 'text-slate-400' : 'text-slate-600'
+                        }`}>Show-up Rate</span>
+                        <span className={`text-sm font-medium ${
+                          theme === 'dark' ? 'text-slate-200' : 'text-slate-800'
+                        }`}>{currentMonth.showUpRate.toFixed(1)}%</span>
+                      </div>
+                      <Progress value={currentMonth.showUpRate} className="h-2 mt-2" />
                     </div>
-                    <Progress value={currentMonth.showUpRate} className="h-2" />
                     
-                    <div className="flex justify-between items-center">
-                      <span className="text-xs text-slate-400">Call → Sale Rate</span>
-                      <span className="text-sm font-medium text-slate-200">{currentMonth.conversionRates.acceptedToSale.toFixed(1)}%</span>
+                    <div 
+                      className={`cursor-pointer p-2 rounded-md transition-all duration-300 backdrop-blur-sm hover:backdrop-blur-md hover:scale-105 ${
+                        theme === 'dark' 
+                          ? 'hover:bg-slate-800/40 hover:shadow-lg hover:shadow-slate-900/50' 
+                          : 'hover:bg-white/40 hover:shadow-lg hover:shadow-slate-200/30'
+                      }`}
+                      onClick={() => handleMetricClick("Call to Sale Rate")}
+                    >
+                      <div className="flex justify-between items-center">
+                        <span className={`text-xs ${
+                          theme === 'dark' ? 'text-slate-400' : 'text-slate-600'
+                        }`}>Call → Sale Rate</span>
+                        <span className={`text-sm font-medium ${
+                          theme === 'dark' ? 'text-slate-200' : 'text-slate-800'
+                        }`}>{currentMonth.conversionRates.acceptedToSale.toFixed(1)}%</span>
+                      </div>
+                      <Progress value={currentMonth.conversionRates.acceptedToSale} className="h-2 mt-2" />
                     </div>
-                    <Progress value={currentMonth.conversionRates.acceptedToSale} className="h-2" />
                     
-                    <div className="flex justify-between items-center">
-                      <span className="text-xs text-slate-400">Website → Call Rate</span>
-                      <span className="text-sm font-medium text-slate-200">{currentMonth.conversionRates.websiteToCall.toFixed(1)}%</span>
+                    <div 
+                      className={`cursor-pointer p-2 rounded-md transition-all duration-300 backdrop-blur-sm hover:backdrop-blur-md hover:scale-105 ${
+                        theme === 'dark' 
+                          ? 'hover:bg-slate-800/40 hover:shadow-lg hover:shadow-slate-900/50' 
+                          : 'hover:bg-white/40 hover:shadow-lg hover:shadow-slate-200/30'
+                      }`}
+                      onClick={() => handleMetricClick("Website to Call Rate")}
+                    >
+                      <div className="flex justify-between items-center">
+                        <span className={`text-xs ${
+                          theme === 'dark' ? 'text-slate-400' : 'text-slate-600'
+                        }`}>Website → Call Rate</span>
+                        <span className={`text-sm font-medium ${
+                          theme === 'dark' ? 'text-slate-200' : 'text-slate-800'
+                        }`}>{currentMonth.conversionRates.websiteToCall.toFixed(1)}%</span>
+                      </div>
+                      <Progress value={currentMonth.conversionRates.websiteToCall} className="h-2 mt-2" />
                     </div>
-                    <Progress value={currentMonth.conversionRates.websiteToCall} className="h-2" />
                   </div>
                 </CardContent>
               </Card>
 
               {/* Time Display */}
-              <Card className="bg-slate-900/50 border-slate-700/50 backdrop-blur-sm">
+              <Card 
+                className={`backdrop-blur-xl cursor-pointer hover:scale-105 transition-all duration-300 hover:backdrop-blur-2xl hover:shadow-2xl hover:shadow-cyan-500/30 ${
+                  theme === 'dark' 
+                    ? 'bg-slate-900/20 border-slate-700/20 hover:bg-slate-900/30 hover:border-slate-600/30' 
+                    : 'bg-white/10 border-white/20 hover:bg-white/20 hover:border-white/30 shadow-lg hover:shadow-slate-200/20'
+                }`}
+                onClick={() => handleMetricClick("Time & Analytics")}
+              >
                 <CardContent className="p-4 text-center">
                   <div className="text-2xl font-mono text-cyan-400 mb-1">
                     {formatTime(currentTime)}
                   </div>
-                  <div className="text-xs text-slate-400">
+                  <div className={`text-xs ${
+                    theme === 'dark' ? 'text-slate-400' : 'text-slate-600'
+                  }`}>
                     {formatDate(currentTime)}
                   </div>
-                  <div className="text-xs text-slate-500 mt-2">
+                  <div className={`text-xs mt-2 ${
+                    theme === 'dark' ? 'text-slate-500' : 'text-slate-500'
+                  }`}>
                     {formatMonth(currentMonth.month)} Analytics
                   </div>
                 </CardContent>
@@ -608,13 +1212,30 @@ export default function Dashboard() {
 }
 
 // Navigation Item Component
-function NavItem({ icon: Icon, label, active }: { icon: LucideIcon; label: string; active?: boolean }) {
+function NavItem({ 
+  icon: Icon, 
+  label, 
+  active, 
+  onClick,
+  theme 
+}: { 
+  icon: LucideIcon; 
+  label: string; 
+  active?: boolean; 
+  onClick?: () => void; 
+  theme?: string;
+}) {
   return (
     <button
-      className={`w-full flex items-center space-x-2 px-3 py-2 rounded-md text-sm transition-colors ${
+      onClick={onClick}
+      className={`w-full flex items-center space-x-2 px-3 py-2 rounded-md text-sm transition-all duration-300 hover:scale-105 backdrop-blur-sm hover:backdrop-blur-md ${
         active
-          ? "bg-slate-800/50 text-cyan-400 border border-slate-700/50"
-          : "text-slate-400 hover:text-slate-100 hover:bg-slate-800/30"
+          ? theme === 'dark'
+            ? "bg-slate-800/40 text-cyan-400 border border-slate-700/40 shadow-lg shadow-cyan-500/20 hover:shadow-xl hover:shadow-cyan-500/30"
+            : "bg-white/40 text-cyan-600 border border-white/40 shadow-lg shadow-cyan-500/20 hover:shadow-xl hover:shadow-cyan-500/30"
+          : theme === 'dark'
+            ? "text-slate-400 hover:text-slate-100 hover:bg-slate-800/30 hover:shadow-lg hover:shadow-slate-900/50"
+            : "text-slate-600 hover:text-slate-900 hover:bg-white/30 hover:shadow-lg hover:shadow-slate-200/30"
       }`}
     >
       <Icon className="h-4 w-4" />
@@ -623,40 +1244,7 @@ function NavItem({ icon: Icon, label, active }: { icon: LucideIcon; label: strin
   );
 }
 
-// Status Item Component
-function StatusItem({ label, value, color }: { label: string; value: number; color: string }) {
-  const getColor = () => {
-    switch (color) {
-      case "cyan":
-        return "text-cyan-400";
-      case "green":
-        return "text-green-400";
-      case "blue":
-        return "text-blue-400";
-      default:
-        return "text-slate-400";
-    }
-  };
 
-  return (
-    <div className="flex items-center justify-between">
-      <span className="text-xs text-slate-400">{label}</span>
-      <div className="flex items-center space-x-2">
-        <span className={`text-xs font-medium ${getColor()}`}>{value}%</span>
-        <div className="w-12 h-1.5 bg-slate-700 rounded-full overflow-hidden">
-          <div
-            className={`h-full bg-gradient-to-r ${
-              color === "cyan" ? "from-cyan-500 to-cyan-400" :
-              color === "green" ? "from-green-500 to-green-400" :
-              "from-blue-500 to-blue-400"
-            }`}
-            style={{ width: `${value}%` }}
-          />
-        </div>
-      </div>
-    </div>
-  );
-}
 
 // Coaching Metric Card Component
 function CoachingMetricCard({
@@ -666,24 +1254,41 @@ function CoachingMetricCard({
   trend,
   color,
   detail,
+  onClick,
+  theme,
 }: {
   title: string;
   value: number;
-  icon: React.ComponentType<any>;
+  icon: React.ComponentType<{ className?: string }>;
   trend: "up" | "down" | "stable";
   color: string;
   detail: string;
+  onClick?: () => void;
+  theme?: string;
 }) {
   const getColor = () => {
-    switch (color) {
-      case "cyan":
-        return "from-cyan-500/20 to-cyan-600/20 border-cyan-500/30";
-      case "purple":
-        return "from-purple-500/20 to-purple-600/20 border-purple-500/30";
-      case "blue":
-        return "from-blue-500/20 to-blue-600/20 border-blue-500/30";
-      default:
-        return "from-slate-500/20 to-slate-600/20 border-slate-500/30";
+    if (theme === 'dark') {
+      switch (color) {
+        case "cyan":
+          return "from-cyan-500/20 to-cyan-600/20 border-cyan-500/30";
+        case "purple":
+          return "from-purple-500/20 to-purple-600/20 border-purple-500/30";
+        case "blue":
+          return "from-blue-500/20 to-blue-600/20 border-blue-500/30";
+        default:
+          return "from-slate-500/20 to-slate-600/20 border-slate-500/30";
+      }
+    } else {
+      switch (color) {
+        case "cyan":
+          return "from-cyan-100/50 to-cyan-200/50 border-cyan-300/50";
+        case "purple":
+          return "from-purple-100/50 to-purple-200/50 border-purple-300/50";
+        case "blue":
+          return "from-blue-100/50 to-blue-200/50 border-blue-300/50";
+        default:
+          return "from-slate-100/50 to-slate-200/50 border-slate-300/50";
+      }
     }
   };
 
@@ -699,30 +1304,59 @@ function CoachingMetricCard({
   };
 
   const getIconColor = () => {
-    switch (color) {
-      case "cyan": return "text-cyan-400";
-      case "purple": return "text-purple-400";
-      case "blue": return "text-blue-400";
-      default: return "text-slate-400";
+    if (theme === 'dark') {
+      switch (color) {
+        case "cyan": return "text-cyan-400";
+        case "purple": return "text-purple-400";
+        case "blue": return "text-blue-400";
+        default: return "text-slate-400";
+      }
+    } else {
+      switch (color) {
+        case "cyan": return "text-cyan-600";
+        case "purple": return "text-purple-600";
+        case "blue": return "text-blue-600";
+        default: return "text-slate-600";
+      }
     }
   };
 
   return (
-    <div className={`bg-gradient-to-br ${getColor()} rounded-lg border p-4 backdrop-blur-sm`}>
+    <div 
+      onClick={onClick}
+      className={`bg-gradient-to-br ${getColor()} rounded-lg border p-4 backdrop-blur-xl cursor-pointer transition-all duration-300 hover:scale-105 hover:backdrop-blur-2xl hover:shadow-2xl hover:shadow-${color}-500/30 ${onClick ? 'hover:border-' + color + '-400/60' : ''}`}
+    >
       <div className="flex items-start justify-between">
         <div className="flex-1">
           <div className="flex items-center space-x-2 mb-1">
             <Icon className={`h-4 w-4 ${getIconColor()}`} />
-            <p className="text-xs text-slate-400 font-medium">{title}</p>
+            <p className={`text-xs font-medium ${
+              theme === 'dark' ? 'text-slate-400' : 'text-slate-600'
+            }`}>{title}</p>
           </div>
-          <p className="text-xl font-bold text-slate-100">
+          <p className={`text-xl font-bold ${
+            theme === 'dark' ? 'text-slate-100' : 'text-slate-900'
+          }`}>
             {title.includes("Revenue") ? `$${value.toLocaleString()}` : value.toLocaleString()}
           </p>
           <div className="flex items-center space-x-1 mt-1">
             {getTrendIcon()}
-            <p className="text-xs text-slate-400">{detail}</p>
+            <p className={`text-xs ${
+              theme === 'dark' ? 'text-slate-400' : 'text-slate-600'
+            }`}>{detail}</p>
           </div>
         </div>
+        {onClick && (
+          <div className={`transition-colors ${
+            theme === 'dark' 
+              ? 'text-slate-400 hover:text-slate-200' 
+              : 'text-slate-600 hover:text-slate-900'
+          }`}>
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -734,11 +1368,13 @@ function AlertItem({
   time,
   description,
   type,
+  onClick,
 }: {
   title: string;
   time: string;
   description: string;
   type: "info" | "warning" | "error" | "success" | "update";
+  onClick?: () => void;
 }) {
   const getTypeStyles = () => {
     switch (type) {
@@ -778,7 +1414,10 @@ function AlertItem({
   const styles = getTypeStyles();
 
   return (
-    <div className={`${styles.bg} border rounded-lg p-3`}>
+    <div 
+      onClick={onClick}
+      className={`${styles.bg} border rounded-lg p-3 ${onClick ? 'cursor-pointer hover:scale-105 transition-all duration-200 hover:shadow-md' : ''}`}
+    >
       <div className="flex items-start space-x-2">
         <AlertCircle className={`h-4 w-4 ${styles.icon} mt-0.5`} />
         <div className="flex-1 min-w-0">
@@ -788,6 +1427,13 @@ function AlertItem({
           </div>
           <p className="text-xs text-slate-400 mt-1">{description}</p>
         </div>
+        {onClick && (
+          <div className="text-slate-400 hover:text-slate-200 transition-colors">
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </div>
+        )}
       </div>
     </div>
   );

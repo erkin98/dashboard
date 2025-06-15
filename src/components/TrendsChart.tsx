@@ -131,7 +131,7 @@ export function TrendsChart({ data, metric, className = '' }: TrendsChartProps) 
                 color: '#94a3b8'
               }}
             />
-            {config.lines.map((line, index) => (
+            {config.lines.map((line) => (
               <Line
                 key={line.key}
                 type="monotone"
