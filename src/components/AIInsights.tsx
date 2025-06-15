@@ -1,6 +1,7 @@
 'use client';
 
 import { AIInsight } from '@/types';
+import { useEffect, useState } from 'react';
 import { 
   LightBulbIcon,
   ArrowTrendingUpIcon,
@@ -15,6 +16,11 @@ interface AIInsightsProps {
 }
 
 export function AIInsights({ insights, className = '' }: AIInsightsProps) {
+  const [mounted, setMounted] = useState(false);
+  
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   const getInsightIcon = (type: AIInsight['type']) => {
     switch (type) {
       case 'trend':
@@ -144,7 +150,7 @@ export function AIInsights({ insights, className = '' }: AIInsightsProps) {
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <div className="h-2 w-2 rounded-full bg-cyan-500 animate-pulse"></div>
-            <span className="text-sm text-slate-400">Last updated: {new Date().toLocaleString()}</span>
+            <span className="text-sm text-slate-400">Last updated: {mounted ? new Date().toLocaleString() : 'Loading...'}</span>
           </div>
           <button className="px-4 py-2 bg-gradient-to-r from-cyan-500/20 to-purple-500/20 text-cyan-300 hover:from-cyan-500/30 hover:to-purple-500/30 font-medium text-sm rounded-lg border border-cyan-500/30 backdrop-blur-sm transition-all duration-200 hover:scale-105">
             Generate New Insights

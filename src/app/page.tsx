@@ -76,9 +76,10 @@ export default function Dashboard() {
   const [selectedMonth] = useState(-1);
   const [timeRange, setTimeRange] = useState<string>('all');
   const [theme, setTheme] = useState<"dark" | "light">("dark");
-  const [currentTime, setCurrentTime] = useState(new Date());
+  const [currentTime, setCurrentTime] = useState<Date | null>(null);
   const [systemStatus, setSystemStatus] = useState(85);
   const [isLoading, setIsLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
   
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -108,8 +109,11 @@ export default function Dashboard() {
     fetchDashboardData();
   }, [fetchDashboardData]);
 
-  // Simulate data loading
+  // Initialize client-side only values
   useEffect(() => {
+    setMounted(true);
+    setCurrentTime(new Date());
+    
     const timer = setTimeout(() => {
       setIsLoading(false);
     }, 2000);
@@ -119,24 +123,30 @@ export default function Dashboard() {
 
   // Update time
   useEffect(() => {
+    if (!mounted) return;
+    
     const interval = setInterval(() => {
       setCurrentTime(new Date());
     }, 1000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [mounted]);
 
   // Simulate changing data
   useEffect(() => {
+    if (!mounted) return;
+    
     const interval = setInterval(() => {
       setSystemStatus(Math.floor(Math.random() * 10) + 80);
     }, 3000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [mounted]);
 
   // Particle effect
   useEffect(() => {
+    if (!mounted) return;
+    
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -216,13 +226,14 @@ export default function Dashboard() {
     return () => {
       window.removeEventListener("resize", handleResize);
     };
-  }, []);
+  }, [mounted]);
 
   const toggleTheme = () => {
     setTheme(theme === "dark" ? "light" : "dark");
   };
 
-  const formatTime = (date: Date) => {
+  const formatTime = (date: Date | null) => {
+    if (!date) return "--:--:--";
     return date.toLocaleTimeString("en-US", {
       hour12: false,
       hour: "2-digit",
@@ -231,7 +242,8 @@ export default function Dashboard() {
     });
   };
 
-  const formatDate = (date: Date) => {
+  const formatDate = (date: Date | null) => {
+    if (!date) return "Loading...";
     return date.toLocaleDateString("en-US", {
       year: "numeric",
       month: "short",
