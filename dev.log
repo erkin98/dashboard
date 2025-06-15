@@ -1,0 +1,13 @@
+nohup: ignoring input
+yarn run v1.22.22
+$ next dev --turbopack
+   ▲ Next.js 15.3.3 (Turbopack)
+   - Local:        http://localhost:3000
+   - Network:      http://192.168.1.74:3000
+
+ ✓ Starting...
+ ✓ Ready in 1179ms
+ ○ Compiling /_not-found/page ...
+ ✓ Compiled /_not-found/page in 612ms
+ GET /api/dashboard 404 in 794ms
+[?25h

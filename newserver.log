@@ -1,0 +1,91 @@
+yarn run v1.22.22
+$ next dev --turbopack
+   ▲ Next.js 15.3.3 (Turbopack)
+   - Local:        http://localhost:3000
+   - Network:      http://192.168.1.74:3000
+
+ ✓ Starting...
+ ✓ Ready in 983ms
+ ○ Compiling / ...
+ ✓ Compiled / in 3.2s
+ ⨯ ./tailwind.config.js:85:13
+Module not found: Can't resolve 'tailwindcss-animate'
+[0m [90m 83 |[39m     }[33m,[39m[0m
+[0m [90m 84 |[39m   }[33m,[39m[0m
+[0m[31m[1m>[22m[39m[90m 85 |[39m   plugins[33m:[39m [require([32m"tailwindcss-animate"[39m)][33m,[39m[0m
+[0m [90m    |[39m             [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[0m
+[0m [90m 86 |[39m }[0m
+[0m [90m 87 |[39m[0m
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+ ○ Compiling /_error ...
+ ✓ Compiled /_error in 757ms
+ HEAD / 500 in 4045ms
+ ✓ Compiled in 1350ms
+ ✓ Compiled / in 9ms
+ HEAD / 200 in 522ms
+ ○ Compiling /api/dashboard ...
+ ✓ Compiled /api/dashboard in 544ms
+ GET /api/dashboard 200 in 625ms
+ ✓ Compiled /api/ai-insights in 279ms
+ HEAD /api/ai-insights 405 in 300ms
+ POST /api/ai-insights 200 in 25ms
+ GET / 200 in 81ms
+ GET /api/dashboard 200 in 60ms
+ ○ Compiling /favicon.ico ...
+ ✓ Compiled /favicon.ico in 586ms
+ GET /favicon.ico?favicon.45db1c09.ico 200 in 837ms
+ ○ Compiling /system ...
+ ✓ Compiled /system in 1333ms
+ GET /system 200 in 1368ms
+ ○ Compiling /_not-found/page ...
+ GET /system 200 in 57ms
+ ✓ Compiled /_not-found/page in 818ms
+ GET /placeholder.svg?height=40&width=40 404 in 875ms
+ GET / 200 in 32ms
+ GET /api/dashboard 200 in 24ms
+ GET /api/dashboard 200 in 20ms
+ POST /api/ai-insights 200 in 22ms
+ HEAD /system 200 in 318ms
+ ✓ Compiled / in 33ms
+ GET / 200 in 213ms
+ GET /api/dashboard 200 in 17ms
+ GET /placeholder.svg?height=40&width=40 404 in 43ms
+ GET / 200 in 202ms
+ GET /api/dashboard 200 in 27ms
+ GET /placeholder.svg?height=40&width=40 404 in 38ms
+ GET /favicon.ico?favicon.45db1c09.ico 200 in 227ms
+ GET /system 200 in 16ms
+ GET /placeholder.svg?height=40&width=40 404 in 30ms
+ GET /placeholder.svg?height=40&width=40 404 in 32ms
+ GET /placeholder.svg?height=40&width=40 404 in 39ms
+ GET / 200 in 30ms
+ GET /api/dashboard 200 in 20ms
+ GET /api/dashboard 200 in 24ms
+ GET /placeholder.svg?height=40&width=40 404 in 76ms
+ ✓ Compiled / in 35ms
+ GET / 200 in 215ms
+ GET /api/dashboard 200 in 16ms
+ GET /placeholder.svg?height=40&width=40 404 in 60ms
+ GET /system 200 in 38ms
+ GET /placeholder.svg?height=40&width=40 404 in 65ms
+ GET /placeholder.svg?height=40&width=40 404 in 74ms
+ GET /placeholder.svg?height=40&width=40 404 in 59ms
+ GET /placeholder.svg?height=40&width=40 404 in 59ms
+ GET /placeholder.svg?height=40&width=40 404 in 63ms
+ GET /placeholder.svg?height=40&width=40 404 in 55ms
+ GET /placeholder.svg?height=40&width=40 404 in 59ms
+ GET / 200 in 34ms
+ GET /api/dashboard 200 in 28ms
+ GET /api/dashboard 200 in 25ms
+ GET /placeholder.svg?height=40&width=40 404 in 58ms
+ ✓ Compiled in 103ms
+ ✓ Compiled in 211ms
+ ✓ Compiled in 194ms
+ ✓ Compiled in 130ms
+ GET / 200 in 271ms
+ GET / 200 in 50ms
