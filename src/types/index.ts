@@ -41,7 +41,21 @@ export interface CallBooking {
   bookedAt: string;
   status: 'booked' | 'accepted' | 'no-show' | 'cancelled';
   country: string;
-  leadSource: string;
+  leadSource: DetailedLeadSource;
+}
+
+export interface DetailedLeadSource {
+  platform: 'youtube' | 'google' | 'facebook' | 'twitter' | 'linkedin' | 'direct' | 'referral';
+  medium: 'organic' | 'paid' | 'social' | 'email' | 'affiliate' | 'direct';
+  campaign?: string;
+  source?: string;
+  content?: string;
+  term?: string;
+  timestamp: string;
+  userAgent?: string;
+  referrerUrl?: string;
+  landingPage: string;
+  sessionId: string;
 }
 
 export interface Sale {
@@ -52,6 +66,41 @@ export interface Sale {
   product: string;
   closedAt: string;
   country: string;
+}
+
+export interface EmailCampaign {
+  id: string;
+  name: string;
+  type: 'welcome' | 'nurture' | 'promotional' | 'follow-up' | 'abandoned-cart' | 'webinar';
+  status: 'draft' | 'scheduled' | 'sending' | 'sent' | 'paused';
+  sentAt?: string;
+  scheduledFor?: string;
+  recipients: {
+    total: number;
+    sent: number;
+    delivered: number;
+    bounced: number;
+    failed: number;
+  };
+  engagement: {
+    opens: number;
+    uniqueOpens: number;
+    clicks: number;
+    uniqueClicks: number;
+    unsubscribes: number;
+    spam: number;
+  };
+  conversions: {
+    callsBooked: number;
+    sales: number;
+    revenue: number;
+  };
+  subject: string;
+  previewText?: string;
+  tags: string[];
+  segmentId?: string;
+  linkedVideoId?: string;
+  followUpSequence?: number;
 }
 
 export interface KajabiData {
@@ -69,6 +118,7 @@ export interface KajabiData {
     openRate: number;
     clickRate: number;
   };
+  emailCampaigns: EmailCampaign[];
 }
 
 export interface AIInsight {
@@ -79,6 +129,37 @@ export interface AIInsight {
   action?: string;
 }
 
+export interface RealTimeAlert {
+  id: string;
+  type: 'performance' | 'conversion' | 'revenue' | 'engagement' | 'system';
+  severity: 'critical' | 'warning' | 'info' | 'success';
+  title: string;
+  message: string;
+  data?: Record<string, unknown>;
+  timestamp: string;
+  isRead: boolean;
+  actionRequired: boolean;
+  suggestedActions?: string[];
+  relatedVideoId?: string;
+  relatedCampaignId?: string;
+  threshold?: {
+    metric: string;
+    expected: number;
+    actual: number;
+    variance: number;
+  };
+}
+
+export interface PerformanceThreshold {
+  id: string;
+  metric: 'conversion_rate' | 'call_show_rate' | 'email_open_rate' | 'revenue_per_view' | 'video_performance';
+  threshold: number;
+  operator: 'greater_than' | 'less_than' | 'equals';
+  isActive: boolean;
+  alertOnBreach: boolean;
+  timeframe: 'hourly' | 'daily' | 'weekly' | 'monthly';
+}
+
 export interface DashboardData {
   monthlyMetrics: MonthlyMetrics[];
   videos: YouTubeVideo[];
@@ -86,4 +167,31 @@ export interface DashboardData {
   sales: Sale[];
   kajabiData: KajabiData;
   aiInsights: AIInsight[];
+  emailCampaigns: EmailCampaign[];
+  realTimeAlerts: RealTimeAlert[];
+  performanceThresholds: PerformanceThreshold[];
+  trafficSources: TrafficSourceAttribution[];
+  apiStatus?: {
+    youtube: 'connected' | 'mock' | 'error';
+    kajabi: 'connected' | 'mock' | 'error';
+    calcom: 'connected' | 'mock' | 'error';
+    openai: 'connected' | 'mock' | 'error';
+  };
+  lastUpdated?: string;
+}
+
+export interface TrafficSourceAttribution {
+  source: DetailedLeadSource;
+  visitors: number;
+  callsBooked: number;
+  salesClosed: number;
+  revenue: number;
+  conversionRate: number;
+  costPerAcquisition?: number;
+  lifetime: {
+    firstSeen: string;
+    lastSeen: string;
+    totalVisits: number;
+    totalRevenue: number;
+  };
 } 

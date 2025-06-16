@@ -32,7 +32,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import NotificationCenter from "@/components/NotificationCenter";
@@ -41,6 +41,13 @@ import { FunnelChart } from '@/components/FunnelChart';
 import { TrendsChart } from '@/components/TrendsChart';
 import { VideoPerformanceTable } from '@/components/VideoPerformanceTable';
 import { TrafficChart } from '@/components/TrafficChart';
+import { EmailCampaignTracker } from '@/components/EmailCampaignTracker';
+import { TrafficSourceAnalytics } from '@/components/TrafficSourceAnalytics';
+import { RealTimeAlerts } from '@/components/RealTimeAlerts';
+import { CriticalMetricsTable } from '@/components/CriticalMetricsTable';
+import { DetailedFunnelOverview } from '@/components/DetailedFunnelOverview';
+import { VideoAttributionAnalytics } from '@/components/VideoAttributionAnalytics';
+import { TrendsComparison } from '@/components/TrendsComparison';
 import { DashboardData } from '@/types';
 
 interface ParticleType {
@@ -55,7 +62,7 @@ interface ParticleType {
 }
 
 export default function Dashboard() {
-  const [data, setData] = useState<DashboardData | null>(null);
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedMonth] = useState(-1);
   const [theme, setTheme] = useState<"dark" | "light">("dark");
@@ -78,7 +85,7 @@ export default function Dashboard() {
       if (!response.ok) throw new Error('Failed to fetch data');
       
       const dashboardData = await response.json();
-      setData(dashboardData);
+      setDashboardData(dashboardData);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     } finally {
@@ -214,9 +221,9 @@ export default function Dashboard() {
           // Simulate data export
           await new Promise((resolve) => {
             setTimeout(() => {
-              if (data) {
+              if (dashboardData) {
                 const element = document.createElement('a');
-                const file = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const file = new Blob([JSON.stringify(dashboardData, null, 2)], { type: 'application/json' });
                 element.href = URL.createObjectURL(file);
                 element.download = `dashboard-data-${new Date().toISOString().split('T')[0]}.json`;
                 document.body.appendChild(element);
@@ -248,7 +255,7 @@ export default function Dashboard() {
     } finally {
       setQuickActionLoading(null);
     }
-  }, [data, fetchDashboardData, quickActionLoading]);
+  }, [dashboardData, fetchDashboardData, quickActionLoading]);
 
   // Function to render section-specific content
   const renderSectionContent = () => {
@@ -366,6 +373,133 @@ export default function Dashboard() {
               Coaching Business Overview
             </CardTitle>
             <div className="flex items-center space-x-2">
+              {/* API Status Indicators */}
+              {dashboardData?.apiStatus && (
+                <div className="flex items-center gap-1">
+                  {Object.entries(dashboardData.apiStatus).map(([service, status]) => {
+                    const getStatusColor = (status: 'connected' | 'mock' | 'error') => {
+                      switch (status) {
+                        case 'connected': return 'bg-green-500 border-green-400';
+                        case 'mock': return 'bg-yellow-500 border-yellow-400';
+                        case 'error': return 'bg-red-500 border-red-400';
+                        default: return 'bg-gray-500 border-gray-400';
+                      }
+                    };
+                    
+                    const getServiceLetter = (service: string) => {
+                      switch (service) {
+                        case 'youtube': return 'Y';
+                        case 'kajabi': return 'K';
+                        case 'calcom': return 'C';
+                        case 'openai': return 'O';
+                        default: return service.charAt(0).toUpperCase();
+                      }
+                    };
+
+                    const getServiceName = (service: string) => {
+                      switch (service) {
+                        case 'youtube': return 'YouTube API';
+                        case 'kajabi': return 'Kajabi API';
+                        case 'calcom': return 'Cal.com API';
+                        case 'openai': return 'OpenAI API';
+                        default: return service.charAt(0).toUpperCase() + service.slice(1);
+                      }
+                    };
+
+                    const getStatusText = (status: 'connected' | 'mock' | 'error') => {
+                      switch (status) {
+                        case 'connected': return 'Connected - Live Data';
+                        case 'mock': return 'Using Mock Data';
+                        case 'error': return 'Connection Error';
+                        default: return 'Unknown Status';
+                      }
+                    };
+                    
+                    return (
+                      <div
+                        key={service}
+                        className={`relative group cursor-help flex items-center`}
+                        title={`${getServiceName(service)}: ${getStatusText(status)}`}
+                      >
+                        {/* Premium Service Letter Badge */}
+                        <div className={`
+                          h-6 w-6 rounded-full border-2 ${getStatusColor(status as 'connected' | 'mock' | 'error')}
+                          flex items-center justify-center text-xs font-bold text-white
+                          ${status === 'connected' ? 'animate-status-glow' : ''}
+                          transition-all duration-300 group-hover:scale-125 shadow-lg
+                          status-premium backdrop-blur-sm
+                        `}>
+                          {getServiceLetter(service)}
+                        </div>
+                        
+                        {/* Tooltip on hover */}
+                        <div className={`
+                          absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 
+                          text-xs font-medium rounded-lg shadow-lg z-50 whitespace-nowrap
+                          opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none
+                          ${theme === 'dark' 
+                            ? 'bg-slate-800 text-slate-200 border border-slate-700' 
+                            : 'bg-white text-slate-800 border border-slate-200 shadow-md'
+                          }
+                        `}>
+                          <div className="text-center">
+                            <div className="font-semibold">{getServiceName(service)}</div>
+                            <div className={`text-xs mt-1 ${
+                              status === 'connected' ? 'text-green-600' :
+                              status === 'error' ? 'text-red-600' : 'text-yellow-600'
+                            }`}>
+                              {getStatusText(status)}
+                            </div>
+                          </div>
+                          {/* Arrow */}
+                          <div className={`absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 
+                            border-l-4 border-r-4 border-t-4 border-transparent
+                            ${theme === 'dark' ? 'border-t-slate-800' : 'border-t-white'}
+                          `}></div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  
+                  {/* Status Legend */}
+                  <div className={`ml-3 text-xs ${
+                    theme === 'dark' ? 'text-slate-400' : 'text-slate-600'
+                  }`}>
+                    <div className="flex items-center gap-4">
+                      {/* Service Legend */}
+                      <div>
+                        <div className="font-medium mb-1">APIs:</div>
+                        <div className="flex gap-2 flex-wrap">
+                          <span>Y=YouTube</span>
+                          <span>K=Kajabi</span>
+                          <span>C=Cal.com</span>
+                          <span>O=OpenAI</span>
+                        </div>
+                      </div>
+                      
+                      {/* Color Status Legend */}
+                      <div>
+                        <div className="font-medium mb-1">Status:</div>
+                        <div className="flex gap-2 items-center">
+                          <div className="flex items-center gap-1">
+                            <div className="h-2 w-2 rounded-full bg-green-500"></div>
+                            <span>Live</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <div className="h-2 w-2 rounded-full bg-yellow-500"></div>
+                            <span>Mock</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <div className="h-2 w-2 rounded-full bg-red-500"></div>
+                            <span>Error</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
               <Badge variant="outline" className={`text-xs ${
                 theme === 'dark' 
                   ? 'bg-slate-800/50 text-cyan-400 border-cyan-500/50' 
@@ -387,11 +521,11 @@ export default function Dashboard() {
             <div className="animate-slide-in-up hover-lift">
               <CoachingMetricCard
                 title="YouTube Views"
-                value={currentMonth.youtubeViews}
+                value={safeCurrentMonth.youtubeViews}
                 icon={PlayIcon}
-                trend={previousMonth && currentMonth.youtubeViews > previousMonth.youtubeViews ? "up" : "down"}
+                trend={previousMonth && safeCurrentMonth.youtubeViews > previousMonth.youtubeViews ? "up" : "down"}
                 color="cyan"
-                detail={`${currentMonth.youtubeUniqueViews.toLocaleString()} unique`}
+                detail={`${(safeCurrentMonth.youtubeUniqueViews || 0).toLocaleString()} unique`}
                 onClick={() => handleCardClick("YouTube Views")}
                 theme={theme}
               />
@@ -399,11 +533,11 @@ export default function Dashboard() {
             <div className="animate-slide-in-up hover-lift" style={{ animationDelay: '0.1s' }}>
               <CoachingMetricCard
                 title="Revenue"
-                value={currentMonth.newCashCollected.total}
+                value={safeCurrentMonth.newCashCollected?.total || 0}
                 icon={CurrencyDollarIcon}
-                trend={previousMonth && currentMonth.newCashCollected.total > previousMonth.newCashCollected.total ? "up" : "stable"}
+                trend={previousMonth && safeCurrentMonth.newCashCollected?.total > previousMonth.newCashCollected?.total ? "up" : "stable"}
                 color="purple"
-                detail={`$${currentMonth.totalCashCollected.toLocaleString()} total`}
+                detail={`$${(safeCurrentMonth.totalCashCollected || 0).toLocaleString()} total`}
                 onClick={() => handleCardClick("Revenue")}
                 theme={theme}
               />
@@ -411,23 +545,41 @@ export default function Dashboard() {
             <div className="animate-slide-in-up hover-lift" style={{ animationDelay: '0.2s' }}>
               <CoachingMetricCard
                 title="Conversion Rate"
-                value={Math.round(currentMonth.conversionRates.acceptedToSale)}
+                value={Math.round(safeCurrentMonth.conversionRates?.acceptedToSale || 0)}
                 icon={TrophyIcon}
                 trend="up"
                 color="blue"
-                detail={`${currentMonth.callsBooked} calls booked`}
+                detail={`${safeCurrentMonth.callsBooked || 0} calls booked`}
                 onClick={() => handleCardClick("Conversion Rate")}
                 theme={theme}
               />
             </div>
           </div>
 
+          {/* Critical Metrics Table - Foundation Requirements */}
           <div className="mt-8">
-            <Tabs defaultValue="funnel" className="w-full">
+            <CriticalMetricsTable 
+              data={dashboardData?.monthlyMetrics || []} 
+              theme={theme}
+            />
+          </div>
+
+          <div className="mt-8">
+            <Tabs defaultValue="critical" className="w-full">
               <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-4">
                 <TabsList className={`p-1 backdrop-blur-xl transition-all duration-300 hover:backdrop-blur-2xl w-full lg:w-auto ${
                   theme === 'dark' ? 'bg-slate-800/30 hover:bg-slate-800/40' : 'bg-white/50 hover:bg-white/70 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.6),0_4px_16px_rgba(0,0,0,0.06)]'
                 }`}>
+                  <TabsTrigger
+                    value="critical"
+                    className={`text-xs sm:text-sm px-2 sm:px-3 py-2 ${
+                      theme === 'dark' 
+                        ? 'data-[state=active]:bg-slate-700 data-[state=active]:text-cyan-400' 
+                        : 'data-[state=active]:bg-white data-[state=active]:text-cyan-600 data-[state=active]:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.9),0_2px_8px_rgba(0,0,0,0.08)]'
+                    }`}
+                  >
+                    <span className="hidden sm:inline">Critical </span>Metrics
+                  </TabsTrigger>
                   <TabsTrigger
                     value="funnel"
                     className={`text-xs sm:text-sm px-2 sm:px-3 py-2 ${
@@ -468,6 +620,66 @@ export default function Dashboard() {
                   >
                     <span className="hidden sm:inline">Top </span>Videos
                   </TabsTrigger>
+                  <TabsTrigger
+                    value="emails"
+                    className={`text-xs sm:text-sm px-2 sm:px-3 py-2 ${
+                      theme === 'dark' 
+                        ? 'data-[state=active]:bg-slate-700 data-[state=active]:text-cyan-400' 
+                        : 'data-[state=active]:bg-white data-[state=active]:text-cyan-600'
+                    }`}
+                  >
+                    <span className="hidden sm:inline">Email </span>Campaigns
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="sources"
+                    className={`text-xs sm:text-sm px-2 sm:px-3 py-2 ${
+                      theme === 'dark' 
+                        ? 'data-[state=active]:bg-slate-700 data-[state=active]:text-cyan-400' 
+                        : 'data-[state=active]:bg-white data-[state=active]:text-cyan-600'
+                    }`}
+                  >
+                    <span className="hidden sm:inline">Traffic </span>Sources
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="alerts"
+                    className={`text-xs sm:text-sm px-2 sm:px-3 py-2 ${
+                      theme === 'dark' 
+                        ? 'data-[state=active]:bg-slate-700 data-[state=active]:text-cyan-400' 
+                        : 'data-[state=active]:bg-white data-[state=active]:text-cyan-600'
+                    }`}
+                  >
+                    <span className="hidden sm:inline">Real-Time </span>Alerts
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="detailed-funnel"
+                    className={`text-xs sm:text-sm px-2 sm:px-3 py-2 ${
+                      theme === 'dark' 
+                        ? 'data-[state=active]:bg-slate-700 data-[state=active]:text-cyan-400' 
+                        : 'data-[state=active]:bg-white data-[state=active]:text-cyan-600'
+                    }`}
+                  >
+                    <span className="hidden sm:inline">Detailed </span>Funnel
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="attribution"
+                    className={`text-xs sm:text-sm px-2 sm:px-3 py-2 ${
+                      theme === 'dark' 
+                        ? 'data-[state=active]:bg-slate-700 data-[state=active]:text-cyan-400' 
+                        : 'data-[state=active]:bg-white data-[state=active]:text-cyan-600'
+                    }`}
+                  >
+                    <span className="hidden sm:inline">Video </span>Attribution
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="trends"
+                    className={`text-xs sm:text-sm px-2 sm:px-3 py-2 ${
+                      theme === 'dark' 
+                        ? 'data-[state=active]:bg-slate-700 data-[state=active]:text-cyan-400' 
+                        : 'data-[state=active]:bg-white data-[state=active]:text-cyan-600'
+                    }`}
+                  >
+                    <span className="hidden sm:inline">Trends & </span>Analysis
+                  </TabsTrigger>
                 </TabsList>
 
                 <div className={`flex items-center justify-center lg:justify-start space-x-3 text-xs ${
@@ -491,6 +703,19 @@ export default function Dashboard() {
                 </div>
               </div>
 
+              <TabsContent value="critical" className="mt-0">
+                <div className={`w-full relative rounded-lg backdrop-blur-xl transition-all duration-300 hover:backdrop-blur-2xl hover:shadow-xl ${
+                  theme === 'dark' 
+                    ? 'bg-slate-800/20 border border-slate-700/30 hover:bg-slate-800/30 hover:border-slate-600/40' 
+                    : 'bg-white/50 border border-white/40 hover:bg-white/70 hover:border-white/60 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.6),0_8px_32px_rgba(0,0,0,0.08)] hover:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.8),0_16px_64px_rgba(0,0,0,0.12)]'
+                }`}>
+                  <CriticalMetricsTable 
+                    data={dashboardData?.monthlyMetrics || []} 
+                    theme={theme}
+                  />
+                </div>
+              </TabsContent>
+
               <TabsContent value="funnel" className="mt-0">
                 <div className={`w-full relative rounded-lg p-4 backdrop-blur-xl transition-all duration-300 hover:backdrop-blur-2xl hover:shadow-xl ${
                   theme === 'dark' 
@@ -498,9 +723,9 @@ export default function Dashboard() {
                     : 'bg-white/50 border border-white/40 hover:bg-white/70 hover:border-white/60 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.6),0_8px_32px_rgba(0,0,0,0.08)] hover:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.8),0_16px_64px_rgba(0,0,0,0.12)]'
                 }`}>
                   <FunnelChart 
-                    data={currentMonth} 
+                    data={safeCurrentMonth} 
                     theme={theme}
-                    onStageClick={(stage, data) => {
+                    onStageClick={(stage) => {
                       handleMetricClick(`${stage} Details`);
                     }}
                   />
@@ -513,7 +738,7 @@ export default function Dashboard() {
                      ? 'bg-slate-800/20 border border-slate-700/30 hover:bg-slate-800/30 hover:border-slate-600/40' 
                      : 'bg-white/20 border border-white/30 hover:bg-white/30 hover:border-white/40 shadow-lg hover:shadow-slate-200/20'
                  }`}>
-                   {data && <TrendsChart data={data.monthlyMetrics} metric="revenue" theme={theme} />}
+                   {dashboardData && <TrendsChart data={dashboardData.monthlyMetrics} metric="revenue" theme={theme} />}
                  </div>
                </TabsContent>
 
@@ -523,7 +748,7 @@ export default function Dashboard() {
                      ? 'bg-slate-800/20 border border-slate-700/30 hover:bg-slate-800/30 hover:border-slate-600/40' 
                      : 'bg-white/20 border border-white/30 hover:bg-white/30 hover:border-white/40 shadow-lg hover:shadow-slate-200/20'
                  }`}>
-                   {data && <TrafficChart data={data.monthlyMetrics} theme={theme} />}
+                   {dashboardData && <TrafficChart data={dashboardData.monthlyMetrics} theme={theme} />}
                  </div>
                </TabsContent>
 
@@ -533,7 +758,93 @@ export default function Dashboard() {
                      ? 'bg-slate-800/20 border border-slate-700/30 hover:bg-slate-800/30 hover:border-slate-600/40' 
                      : 'bg-white/20 border border-white/30 hover:bg-white/30 hover:border-white/40 shadow-lg hover:shadow-slate-200/20'
                  }`}>
-                   {data && <VideoPerformanceTable videos={data.videos.slice(0, 5)} />}
+                   {dashboardData && <VideoPerformanceTable videos={dashboardData.videos.slice(0, 5)} />}
+                 </div>
+               </TabsContent>
+
+               <TabsContent value="emails" className="mt-0">
+                 <div className={`w-full relative rounded-lg backdrop-blur-xl transition-all duration-300 hover:backdrop-blur-2xl hover:shadow-xl ${
+                   theme === 'dark' 
+                     ? 'bg-slate-800/20 border border-slate-700/30 hover:bg-slate-800/30 hover:border-slate-600/40' 
+                     : 'bg-white/20 border border-white/30 hover:bg-white/30 hover:border-white/40 shadow-lg hover:shadow-slate-200/20'
+                 }`}>
+                   {dashboardData && <EmailCampaignTracker campaigns={dashboardData.kajabiData.emailCampaigns} theme={theme} />}
+                 </div>
+               </TabsContent>
+
+               <TabsContent value="sources" className="mt-0">
+                 <div className={`w-full relative rounded-lg backdrop-blur-xl transition-all duration-300 hover:backdrop-blur-2xl hover:shadow-xl ${
+                   theme === 'dark' 
+                     ? 'bg-slate-800/20 border border-slate-700/30 hover:bg-slate-800/30 hover:border-slate-600/40' 
+                     : 'bg-white/20 border border-white/30 hover:bg-white/30 hover:border-white/40 shadow-lg hover:shadow-slate-200/20'
+                 }`}>
+                   {dashboardData && <TrafficSourceAnalytics trafficSources={dashboardData.trafficSources} theme={theme} />}
+                 </div>
+               </TabsContent>
+
+               <TabsContent value="alerts" className="mt-0">
+                 <div className={`w-full relative rounded-lg backdrop-blur-xl transition-all duration-300 hover:backdrop-blur-2xl hover:shadow-xl ${
+                   theme === 'dark' 
+                     ? 'bg-slate-800/20 border border-slate-700/30 hover:bg-slate-800/30 hover:border-slate-600/40' 
+                     : 'bg-white/20 border border-white/30 hover:bg-white/30 hover:border-white/40 shadow-lg hover:shadow-slate-200/20'
+                 }`}>
+                   {dashboardData && <RealTimeAlerts 
+                     alerts={dashboardData.realTimeAlerts} 
+                     thresholds={dashboardData.performanceThresholds}
+                     theme={theme}
+                     onMarkAsRead={(alertId) => {
+                       console.log('Marking alert as read:', alertId);
+                       // Update alert state
+                     }}
+                     onDismiss={(alertId) => {
+                       console.log('Dismissing alert:', alertId);
+                       // Remove alert
+                     }}
+                   />}
+                 </div>
+               </TabsContent>
+
+               <TabsContent value="detailed-funnel" className="mt-0">
+                 <div className={`w-full relative rounded-lg backdrop-blur-xl transition-all duration-300 hover:backdrop-blur-2xl hover:shadow-xl ${
+                   theme === 'dark' 
+                     ? 'bg-slate-800/20 border border-slate-700/30 hover:bg-slate-800/30 hover:border-slate-600/40' 
+                     : 'bg-white/50 border border-white/40 hover:bg-white/70 hover:border-white/60 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.6),0_8px_32px_rgba(0,0,0,0.08)] hover:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.8),0_16px_64px_rgba(0,0,0,0.12)]'
+                 }`}>
+                   {dashboardData && <DetailedFunnelOverview 
+                     monthlyMetrics={dashboardData.monthlyMetrics}
+                     videos={dashboardData.videos}
+                     sales={dashboardData.sales}
+                     theme={theme}
+                   />}
+                 </div>
+               </TabsContent>
+
+               <TabsContent value="attribution" className="mt-0">
+                 <div className={`w-full relative rounded-lg backdrop-blur-xl transition-all duration-300 hover:backdrop-blur-2xl hover:shadow-xl ${
+                   theme === 'dark' 
+                     ? 'bg-slate-800/20 border border-slate-700/30 hover:bg-slate-800/30 hover:border-slate-600/40' 
+                     : 'bg-white/50 border border-white/40 hover:bg-white/70 hover:border-white/60 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.6),0_8px_32px_rgba(0,0,0,0.08)] hover:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.8),0_16px_64px_rgba(0,0,0,0.12)]'
+                 }`}>
+                   {dashboardData && <VideoAttributionAnalytics 
+                     videos={dashboardData.videos}
+                     calls={dashboardData.calls}
+                     sales={dashboardData.sales}
+                     theme={theme}
+                   />}
+                 </div>
+               </TabsContent>
+
+               <TabsContent value="trends" className="mt-0">
+                 <div className={`w-full relative rounded-lg backdrop-blur-xl transition-all duration-300 hover:backdrop-blur-2xl hover:shadow-xl ${
+                   theme === 'dark' 
+                     ? 'bg-slate-800/20 border border-slate-700/30 hover:bg-slate-800/30 hover:border-slate-600/40' 
+                     : 'bg-white/50 border border-white/40 hover:bg-white/70 hover:border-white/60 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.6),0_8px_32px_rgba(0,0,0,0.08)] hover:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.8),0_16px_64px_rgba(0,0,0,0.12)]'
+                 }`}>
+                   {dashboardData && <TrendsComparison 
+                     monthlyMetrics={dashboardData.monthlyMetrics}
+                     videos={dashboardData.videos}
+                     theme={theme}
+                   />}
                  </div>
                </TabsContent>
             </Tabs>
@@ -719,7 +1030,7 @@ export default function Dashboard() {
     });
   };
 
-  if (!data && loading) {
+  if (!dashboardData && loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-black to-slate-900 text-slate-100 relative overflow-hidden">
         <canvas ref={canvasRef} className="absolute inset-0 w-full h-full opacity-30" />
@@ -739,7 +1050,7 @@ export default function Dashboard() {
     );
   }
 
-  if (!data) {
+  if (!dashboardData) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-black to-slate-900 text-slate-100 flex items-center justify-center">
         <div className="text-center">
@@ -756,8 +1067,18 @@ export default function Dashboard() {
     );
   }
 
-  const currentMonth = data.monthlyMetrics[selectedMonth] || data.monthlyMetrics[data.monthlyMetrics.length - 1];
-  const previousMonth = data.monthlyMetrics[data.monthlyMetrics.length - 2];
+  const currentMonth = dashboardData?.monthlyMetrics?.[selectedMonth] || dashboardData?.monthlyMetrics?.[dashboardData.monthlyMetrics.length - 1];
+  const previousMonth = dashboardData?.monthlyMetrics?.[dashboardData.monthlyMetrics.length - 2];
+  
+  // Add fallback values if currentMonth is undefined
+  const safeCurrentMonth = currentMonth || {
+    youtubeViews: 0,
+    youtubeUniqueViews: 0,
+    newCashCollected: { total: 0 },
+    totalCashCollected: 0,
+    callsBooked: 0,
+    conversionRates: { acceptedToSale: 0 }
+  };
   
 
 
@@ -942,13 +1263,25 @@ export default function Dashboard() {
   };
 
   return (
-    <div className={`${theme} min-h-screen transition-colors duration-300 ${
+    <div className={`${theme} min-h-screen transition-all duration-700 ${
       theme === 'dark' 
-        ? 'bg-gradient-to-br from-black to-slate-900 text-slate-100' 
-        : 'bg-gradient-to-br from-gray-100 via-gray-50 to-white text-slate-800'
+        ? 'bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-slate-100' 
+        : 'bg-gradient-to-br from-slate-50 via-white to-blue-50/30 text-slate-800'
     } relative overflow-hidden`}>
-      {/* Background particle effect */}
-      <canvas ref={canvasRef} className={`absolute inset-0 w-full h-full ${theme === 'dark' ? 'opacity-30' : 'opacity-20'}`} />
+      {/* Premium Background Effects */}
+      <div className={`absolute inset-0 ${
+        theme === 'dark' 
+          ? 'bg-[radial-gradient(circle_at_20%_80%,rgba(120,119,198,0.15),transparent_70%),radial-gradient(circle_at_80%_20%,rgba(255,119,198,0.15),transparent_70%),radial-gradient(circle_at_40%_40%,rgba(59,130,246,0.1),transparent_70%)]' 
+          : 'bg-[radial-gradient(circle_at_20%_80%,rgba(59,130,246,0.08),transparent_70%),radial-gradient(circle_at_80%_20%,rgba(139,92,246,0.08),transparent_70%),radial-gradient(circle_at_40%_40%,rgba(16,185,129,0.06),transparent_70%)]'
+      }`}></div>
+      <div className={`absolute inset-0 opacity-40 ${
+        theme === 'dark' 
+          ? 'bg-[linear-gradient(45deg,transparent_25%,rgba(120,119,198,0.05)_50%,transparent_75%),linear-gradient(-45deg,transparent_25%,rgba(59,130,246,0.05)_50%,transparent_75%)]' 
+          : 'bg-[linear-gradient(45deg,transparent_25%,rgba(59,130,246,0.03)_50%,transparent_75%),linear-gradient(-45deg,transparent_25%,rgba(139,92,246,0.03)_50%,transparent_75%)]'
+      }`} style={{ backgroundSize: '60px 60px' }}></div>
+      
+      {/* Animated Background Particles */}
+      <canvas ref={canvasRef} className={`absolute inset-0 w-full h-full ${theme === 'dark' ? 'opacity-40' : 'opacity-25'}`} />
       
       {/* Detail Modal */}
       <DetailModal />
@@ -981,13 +1314,32 @@ export default function Dashboard() {
       )}
 
       <div className="container mx-auto p-2 sm:p-4 relative z-10 max-w-full">
-        {/* Responsive Header */}
-        <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between py-3 sm:py-4 border-b border-slate-700/50 mb-4 sm:mb-6 gap-3 sm:gap-0">
-          <div className="flex items-center space-x-2 animate-fade-in-scale">
-            <Hexagon className="h-6 w-6 sm:h-8 sm:w-8 text-cyan-500 animate-float" />
-            <span className="text-lg sm:text-xl font-bold gradient-text">
-              NextGen Dashboard
-            </span>
+        {/* Premium Header */}
+        <header className={`flex flex-col sm:flex-row items-start sm:items-center justify-between py-4 sm:py-6 mb-6 sm:mb-8 gap-3 sm:gap-0 backdrop-blur-xl rounded-2xl transition-all duration-500 ${
+          theme === 'dark' 
+            ? 'bg-slate-900/20 border border-slate-700/30 shadow-[0_8px_32px_rgba(0,0,0,0.3)]' 
+            : 'bg-white/40 border border-white/50 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.8),0_8px_32px_rgba(0,0,0,0.06)]'
+        } px-4 sm:px-6 hover:shadow-2xl hover:scale-[1.01]`}>
+          <div className="flex items-center space-x-3 animate-fade-in-scale">
+            <div className="relative">
+              <Hexagon className="h-8 w-8 sm:h-10 sm:w-10 text-cyan-500 animate-premium-float drop-shadow-[0_0_20px_rgba(6,182,212,0.8)]" />
+              <div className="absolute inset-0 h-8 w-8 sm:h-10 sm:w-10 text-cyan-500/20 animate-pulse">
+                <Hexagon className="h-full w-full" />
+              </div>
+              <div className="absolute inset-0 h-8 w-8 sm:h-10 sm:w-10 animate-holographic opacity-30">
+                <Hexagon className="h-full w-full" />
+              </div>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-xl sm:text-2xl font-black gradient-text tracking-tight animate-card-entrance">
+                COACHING NEXUS
+              </span>
+              <span className={`text-xs font-medium tracking-wider transition-all duration-500 ${
+                theme === 'dark' ? 'text-slate-400' : 'text-slate-600'
+              }`}>
+                ENTERPRISE ANALYTICS PLATFORM
+              </span>
+            </div>
           </div>
 
           <div className="flex items-center space-x-3 sm:space-x-6 w-full sm:w-auto justify-between sm:justify-end">
@@ -1243,7 +1595,7 @@ export default function Dashboard() {
                 </CardHeader>
                 <CardContent className="p-4">
                   <div className="space-y-4">
-                    {data.aiInsights.slice(0, 3).map((insight, index) => (
+                    {dashboardData.aiInsights.slice(0, 3).map((insight, index) => (
                       <AlertItem
                         key={`insight-${insight.title}-${index}`}
                         title={insight.title}
@@ -1299,9 +1651,9 @@ export default function Dashboard() {
                         }`}>Show-up Rate</span>
                         <span className={`text-sm font-medium ${
                           theme === 'dark' ? 'text-slate-100' : 'text-slate-900'
-                        }`}>{currentMonth.showUpRate.toFixed(1)}%</span>
+                        }`}>{(safeCurrentMonth.showUpRate || 0).toFixed(1)}%</span>
                       </div>
-                      <Progress value={currentMonth.showUpRate} className="h-2 mt-2" />
+                      <Progress value={safeCurrentMonth.showUpRate || 0} className="h-2 mt-2" />
                     </div>
                     
                     <div 
@@ -1318,9 +1670,9 @@ export default function Dashboard() {
                         }`}>Call → Sale Rate</span>
                         <span className={`text-sm font-medium ${
                           theme === 'dark' ? 'text-slate-100' : 'text-slate-900'
-                        }`}>{currentMonth.conversionRates.acceptedToSale.toFixed(1)}%</span>
+                        }`}>{(safeCurrentMonth.conversionRates?.acceptedToSale || 0).toFixed(1)}%</span>
                       </div>
-                      <Progress value={currentMonth.conversionRates.acceptedToSale} className="h-2 mt-2" />
+                      <Progress value={safeCurrentMonth.conversionRates?.acceptedToSale || 0} className="h-2 mt-2" />
                     </div>
                     
                     <div 
@@ -1337,9 +1689,9 @@ export default function Dashboard() {
                         }`}>Website → Call Rate</span>
                         <span className={`text-sm font-medium ${
                           theme === 'dark' ? 'text-slate-100' : 'text-slate-900'
-                        }`}>{currentMonth.conversionRates.websiteToCall.toFixed(1)}%</span>
+                        }`}>{(safeCurrentMonth.conversionRates?.websiteToCall || 0).toFixed(1)}%</span>
                       </div>
-                      <Progress value={currentMonth.conversionRates.websiteToCall} className="h-2 mt-2" />
+                      <Progress value={safeCurrentMonth.conversionRates?.websiteToCall || 0} className="h-2 mt-2" />
                     </div>
                   </div>
                 </CardContent>
@@ -1368,7 +1720,7 @@ export default function Dashboard() {
                   <div className={`text-xs mt-2 ${
                     theme === 'dark' ? 'text-slate-500' : 'text-slate-600'
                   }`}>
-                    {formatMonth(currentMonth.month)} Analytics
+                    {formatMonth(safeCurrentMonth.month || new Date().toISOString().slice(0, 7))} Analytics
                   </div>
                 </CardContent>
               </Card>
