@@ -1,0 +1,401 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`MetricCard Snapshot Tests should match snapshot for basic metric card 1`] = `
+<div
+  class="bg-white rounded-xl p-6 shadow-sm border border-gray-200 "
+>
+  <div
+    class="flex items-center justify-between"
+  >
+    <div
+      class="flex items-center space-x-3"
+    >
+      <div>
+        <p
+          class="text-sm font-medium text-gray-600"
+        >
+          Total Views
+        </p>
+        <p
+          class="text-2xl font-bold text-gray-900"
+        >
+          125K
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`MetricCard Snapshot Tests should match snapshot for complete example 1`] = `
+<div
+  class="bg-white rounded-xl p-6 shadow-sm border border-gray-200 border-2 border-cyan-500"
+>
+  <div
+    class="flex items-center justify-between"
+  >
+    <div
+      class="flex items-center space-x-3"
+    >
+      <div>
+        <p
+          class="text-sm font-medium text-gray-600"
+        >
+          Monthly Earnings
+        </p>
+        <p
+          class="text-2xl font-bold text-gray-900"
+        >
+          $
+          15K
+           USD
+        </p>
+      </div>
+    </div>
+    <div
+      class="flex items-center space-x-1 px-2 py-1 rounded-md bg-green-50 text-green-700"
+    >
+      <svg
+        aria-hidden="true"
+        class="h-4 w-4"
+        data-slot="icon"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.5"
+        viewBox="0 0 24 24"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          d="M4.5 10.5 12 3m0 0 7.5 7.5M12 3v18"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      </svg>
+      <span
+        class="text-sm font-medium"
+      >
+        18.2
+        %
+      </span>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`MetricCard Snapshot Tests should match snapshot for large numbers 1`] = `
+<div
+  class="bg-white rounded-xl p-6 shadow-sm border border-gray-200 "
+>
+  <div
+    class="flex items-center justify-between"
+  >
+    <div
+      class="flex items-center space-x-3"
+    >
+      <div>
+        <p
+          class="text-sm font-medium text-gray-600"
+        >
+          Total Impressions
+        </p>
+        <p
+          class="text-2xl font-bold text-gray-900"
+        >
+          2.5M
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`MetricCard Snapshot Tests should match snapshot for string value 1`] = `
+<div
+  class="bg-white rounded-xl p-6 shadow-sm border border-gray-200 "
+>
+  <div
+    class="flex items-center justify-between"
+  >
+    <div
+      class="flex items-center space-x-3"
+    >
+      <div>
+        <p
+          class="text-sm font-medium text-gray-600"
+        >
+          Account Status
+        </p>
+        <p
+          class="text-2xl font-bold text-gray-900"
+        >
+          Active
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`MetricCard Snapshot Tests should match snapshot with custom className 1`] = `
+<div
+  class="bg-white rounded-xl p-6 shadow-sm border border-gray-200 border-2 border-cyan-500"
+>
+  <div
+    class="flex items-center justify-between"
+  >
+    <div
+      class="flex items-center space-x-3"
+    >
+      <div>
+        <p
+          class="text-sm font-medium text-gray-600"
+        >
+          Custom Styled
+        </p>
+        <p
+          class="text-2xl font-bold text-gray-900"
+        >
+          12K
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`MetricCard Snapshot Tests should match snapshot with icon 1`] = `
+<div
+  class="bg-white rounded-xl p-6 shadow-sm border border-gray-200 "
+>
+  <div
+    class="flex items-center justify-between"
+  >
+    <div
+      class="flex items-center space-x-3"
+    >
+      <div
+        class="p-2 bg-blue-50 rounded-lg"
+      >
+        <svg
+          aria-hidden="true"
+          class="h-5 w-5 text-blue-600"
+          data-slot="icon"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.5"
+          viewBox="0 0 24 24"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 0 1 0 1.972l-11.54 6.347a1.125 1.125 0 0 1-1.667-.986V5.653Z"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+      </div>
+      <div>
+        <p
+          class="text-sm font-medium text-gray-600"
+        >
+          Active Videos
+        </p>
+        <p
+          class="text-2xl font-bold text-gray-900"
+        >
+          24
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`MetricCard Snapshot Tests should match snapshot with icon and change 1`] = `
+<div
+  class="bg-white rounded-xl p-6 shadow-sm border border-gray-200 "
+>
+  <div
+    class="flex items-center justify-between"
+  >
+    <div
+      class="flex items-center space-x-3"
+    >
+      <div>
+        <p
+          class="text-sm font-medium text-gray-600"
+        >
+          Views This Month
+        </p>
+        <p
+          class="text-2xl font-bold text-gray-900"
+        >
+          89K
+        </p>
+      </div>
+    </div>
+    <div
+      class="flex items-center space-x-1 px-2 py-1 rounded-md bg-green-50 text-green-700"
+    >
+      <svg
+        aria-hidden="true"
+        class="h-4 w-4"
+        data-slot="icon"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.5"
+        viewBox="0 0 24 24"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          d="M4.5 10.5 12 3m0 0 7.5 7.5M12 3v18"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      </svg>
+      <span
+        class="text-sm font-medium"
+      >
+        15.7
+        %
+      </span>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`MetricCard Snapshot Tests should match snapshot with negative change 1`] = `
+<div
+  class="bg-white rounded-xl p-6 shadow-sm border border-gray-200 "
+>
+  <div
+    class="flex items-center justify-between"
+  >
+    <div
+      class="flex items-center space-x-3"
+    >
+      <div>
+        <p
+          class="text-sm font-medium text-gray-600"
+        >
+          Bounce Rate
+        </p>
+        <p
+          class="text-2xl font-bold text-gray-900"
+        >
+          45.2
+          %
+        </p>
+      </div>
+    </div>
+    <div
+      class="flex items-center space-x-1 px-2 py-1 rounded-md bg-red-50 text-red-700"
+    >
+      <svg
+        aria-hidden="true"
+        class="h-4 w-4"
+        data-slot="icon"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.5"
+        viewBox="0 0 24 24"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          d="M19.5 13.5 12 21m0 0-7.5-7.5M12 21V3"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      </svg>
+      <span
+        class="text-sm font-medium"
+      >
+        8.3
+        %
+      </span>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`MetricCard Snapshot Tests should match snapshot with positive change 1`] = `
+<div
+  class="bg-white rounded-xl p-6 shadow-sm border border-gray-200 "
+>
+  <div
+    class="flex items-center justify-between"
+  >
+    <div
+      class="flex items-center space-x-3"
+    >
+      <div>
+        <p
+          class="text-sm font-medium text-gray-600"
+        >
+          Conversion Rate
+        </p>
+        <p
+          class="text-2xl font-bold text-gray-900"
+        >
+          3.2
+          %
+        </p>
+      </div>
+    </div>
+    <div
+      class="flex items-center space-x-1 px-2 py-1 rounded-md bg-green-50 text-green-700"
+    >
+      <svg
+        aria-hidden="true"
+        class="h-4 w-4"
+        data-slot="icon"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.5"
+        viewBox="0 0 24 24"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          d="M4.5 10.5 12 3m0 0 7.5 7.5M12 3v18"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      </svg>
+      <span
+        class="text-sm font-medium"
+      >
+        12.5
+        %
+      </span>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`MetricCard Snapshot Tests should match snapshot with prefix and suffix 1`] = `
+<div
+  class="bg-white rounded-xl p-6 shadow-sm border border-gray-200 "
+>
+  <div
+    class="flex items-center justify-between"
+  >
+    <div
+      class="flex items-center space-x-3"
+    >
+      <div>
+        <p
+          class="text-sm font-medium text-gray-600"
+        >
+          Monthly Revenue
+        </p>
+        <p
+          class="text-2xl font-bold text-gray-900"
+        >
+          $
+          5K
+          /month
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+`;

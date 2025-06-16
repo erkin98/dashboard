@@ -42,3 +42,6 @@ next-env.d.ts
 DEMO_VIDEO_OUTLINE.md
 newserver.log
 server.log
+
+*storybook.log
+storybook-static

@@ -40,6 +40,7 @@ import AdvancedSearch from "@/components/AdvancedSearch";
 import { FunnelChart } from '@/components/FunnelChart';
 import { TrendsChart } from '@/components/TrendsChart';
 import { VideoPerformanceTable } from '@/components/VideoPerformanceTable';
+import { TrafficChart } from '@/components/TrafficChart';
 import { DashboardData } from '@/types';
 
 interface ParticleType {
@@ -200,20 +201,14 @@ export default function Dashboard() {
     console.log(`Quick Action: ${actionName}`);
     
     try {
-      // Show a visual feedback with the action
-      setSelectedMetric(actionName);
-      setShowDetailModal(true);
-      
       // Special handling for specific actions
       switch (actionName) {
         case 'Refresh Data':
           await fetchDashboardData();
           break;
         case 'View Report':
-          // Navigate to analytics section
+          // Navigate to analytics section but keep modal open
           setActiveSection('Analytics');
-          // Close modal after navigation
-          setTimeout(() => setShowDetailModal(false), 1500);
           break;
         case 'Export Data':
           // Simulate data export
@@ -233,8 +228,8 @@ export default function Dashboard() {
           });
           break;
         case 'AI Analysis':
+          // Navigate to AI Insights but keep modal open
           setActiveSection('AI Insights');
-          setTimeout(() => setShowDetailModal(false), 1500);
           break;
         case 'Set Alert':
           // Simulate alert creation
@@ -342,7 +337,7 @@ export default function Dashboard() {
       Revenue: <CurrencyDollarIcon className="mr-2 h-5 w-5 text-green-500" />,
       Leads: <UserGroupIcon className="mr-2 h-5 w-5 text-purple-500" />,
       Analytics: <BarChart3 className="mr-2 h-5 w-5 text-orange-500" />,
-      "AI Insights": <Terminal className="mr-2 h-5 w-5 text-purple-500" />,
+      "AI Insights": <Terminal className={`mr-2 h-5 w-5 ${theme === 'dark' ? 'text-indigo-400' : 'text-indigo-600'}`} />,
       Settings: <Settings className="mr-2 h-5 w-5 text-slate-500" />
     };
     return iconMap[section] || <Activity className="mr-2 h-5 w-5 text-cyan-500" />;
@@ -353,17 +348,17 @@ export default function Dashboard() {
       <Card className={`backdrop-blur-xl overflow-hidden transition-all duration-300 hover:backdrop-blur-2xl hover:shadow-2xl hover:scale-[1.01] ${
         theme === 'dark' 
           ? 'bg-slate-900/20 border-slate-700/20 hover:bg-slate-900/30 hover:border-slate-600/30' 
-          : 'bg-white/10 border-white/20 hover:bg-white/20 hover:border-white/30 shadow-lg hover:shadow-slate-200/20'
+          : 'bg-white/60 border-white/40 hover:bg-white/80 hover:border-white/60 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.7),0_8px_32px_rgba(0,0,0,0.08)] hover:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.9),0_16px_64px_rgba(0,0,0,0.12)]'
       }`}>
         <CardHeader className={`pb-3 ${
-          theme === 'dark' ? 'border-b border-slate-700/50' : 'border-b border-slate-200/50'
+          theme === 'dark' ? 'border-b border-slate-700/50' : 'border-b border-white/30'
         }`}>
           <div className="flex items-center justify-between">
             <CardTitle 
               className={`flex items-center cursor-pointer transition-colors ${
                 theme === 'dark' 
                   ? 'text-slate-100 hover:text-cyan-400' 
-                  : 'text-slate-900 hover:text-cyan-600'
+                  : 'text-slate-800 hover:text-cyan-600'
               }`}
               onClick={() => handleSectionClick("Dashboard")}
             >
@@ -374,7 +369,7 @@ export default function Dashboard() {
               <Badge variant="outline" className={`text-xs ${
                 theme === 'dark' 
                   ? 'bg-slate-800/50 text-cyan-400 border-cyan-500/50' 
-                  : 'bg-slate-100/50 text-cyan-600 border-cyan-400/50'
+                  : 'bg-white/80 text-cyan-600 border-cyan-400/50 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.8),0_4px_16px_rgba(0,0,0,0.06)]'
               }`}>
                 <div className="h-1.5 w-1.5 rounded-full bg-cyan-500 mr-1 animate-pulse"></div>
                 LIVE
@@ -388,7 +383,7 @@ export default function Dashboard() {
           </div>
         </CardHeader>
         <CardContent className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             <div className="animate-slide-in-up hover-lift">
               <CoachingMetricCard
                 title="YouTube Views"
@@ -429,77 +424,106 @@ export default function Dashboard() {
 
           <div className="mt-8">
             <Tabs defaultValue="funnel" className="w-full">
-              <div className="flex items-center justify-between mb-4">
-                <TabsList className={`p-1 backdrop-blur-xl transition-all duration-300 hover:backdrop-blur-2xl ${
-                  theme === 'dark' ? 'bg-slate-800/30 hover:bg-slate-800/40' : 'bg-white/30 hover:bg-white/40'
+              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-4">
+                <TabsList className={`p-1 backdrop-blur-xl transition-all duration-300 hover:backdrop-blur-2xl w-full lg:w-auto ${
+                  theme === 'dark' ? 'bg-slate-800/30 hover:bg-slate-800/40' : 'bg-white/50 hover:bg-white/70 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.6),0_4px_16px_rgba(0,0,0,0.06)]'
                 }`}>
                   <TabsTrigger
                     value="funnel"
-                    className={`${
+                    className={`text-xs sm:text-sm px-2 sm:px-3 py-2 ${
                       theme === 'dark' 
                         ? 'data-[state=active]:bg-slate-700 data-[state=active]:text-cyan-400' 
-                        : 'data-[state=active]:bg-white data-[state=active]:text-cyan-600'
+                        : 'data-[state=active]:bg-white data-[state=active]:text-cyan-600 data-[state=active]:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.9),0_2px_8px_rgba(0,0,0,0.08)]'
                     }`}
                   >
-                    Sales Funnel
+                    <span className="hidden sm:inline">Sales </span>Funnel
                   </TabsTrigger>
                   <TabsTrigger
                     value="trends"
-                    className={`${
+                    className={`text-xs sm:text-sm px-2 sm:px-3 py-2 ${
                       theme === 'dark' 
                         ? 'data-[state=active]:bg-slate-700 data-[state=active]:text-cyan-400' 
                         : 'data-[state=active]:bg-white data-[state=active]:text-cyan-600'
                     }`}
                   >
-                    Revenue Trends
+                    <span className="hidden sm:inline">Revenue </span>Trends
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="traffic"
+                    className={`text-xs sm:text-sm px-2 sm:px-3 py-2 ${
+                      theme === 'dark' 
+                        ? 'data-[state=active]:bg-slate-700 data-[state=active]:text-cyan-400' 
+                        : 'data-[state=active]:bg-white data-[state=active]:text-cyan-600'
+                    }`}
+                  >
+                    <span className="hidden sm:inline">YouTube & </span>Traffic
                   </TabsTrigger>
                   <TabsTrigger
                     value="videos"
-                    className={`${
+                    className={`text-xs sm:text-sm px-2 sm:px-3 py-2 ${
                       theme === 'dark' 
                         ? 'data-[state=active]:bg-slate-700 data-[state=active]:text-cyan-400' 
                         : 'data-[state=active]:bg-white data-[state=active]:text-cyan-600'
                     }`}
                   >
-                    Top Videos
+                    <span className="hidden sm:inline">Top </span>Videos
                   </TabsTrigger>
                 </TabsList>
 
-                <div className={`flex items-center space-x-2 text-xs ${
+                <div className={`flex items-center justify-center lg:justify-start space-x-3 text-xs ${
                   theme === 'dark' ? 'text-slate-400' : 'text-slate-600'
                 }`}>
                   <div className="flex items-center">
                     <div className="h-2 w-2 rounded-full bg-cyan-500 mr-1"></div>
-                    Views
+                    <span className="hidden sm:inline">Views</span>
+                    <span className="sm:hidden">V</span>
                   </div>
                   <div className="flex items-center">
                     <div className="h-2 w-2 rounded-full bg-purple-500 mr-1"></div>
-                    Revenue
+                    <span className="hidden sm:inline">Revenue</span>
+                    <span className="sm:hidden">R</span>
                   </div>
                   <div className="flex items-center">
                     <div className="h-2 w-2 rounded-full bg-blue-500 mr-1"></div>
-                    Calls
+                    <span className="hidden sm:inline">Calls</span>
+                    <span className="sm:hidden">C</span>
                   </div>
                 </div>
               </div>
 
               <TabsContent value="funnel" className="mt-0">
-                <div className={`h-64 w-full relative rounded-lg overflow-hidden backdrop-blur-xl transition-all duration-300 hover:backdrop-blur-2xl hover:shadow-xl ${
+                <div className={`w-full relative rounded-lg p-4 backdrop-blur-xl transition-all duration-300 hover:backdrop-blur-2xl hover:shadow-xl ${
                   theme === 'dark' 
                     ? 'bg-slate-800/20 border border-slate-700/30 hover:bg-slate-800/30 hover:border-slate-600/40' 
-                    : 'bg-white/20 border border-white/30 hover:bg-white/30 hover:border-white/40 shadow-lg hover:shadow-slate-200/20'
+                    : 'bg-white/50 border border-white/40 hover:bg-white/70 hover:border-white/60 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.6),0_8px_32px_rgba(0,0,0,0.08)] hover:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.8),0_16px_64px_rgba(0,0,0,0.12)]'
                 }`}>
-                  <FunnelChart data={currentMonth} />
+                  <FunnelChart 
+                    data={currentMonth} 
+                    theme={theme}
+                    onStageClick={(stage, data) => {
+                      handleMetricClick(`${stage} Details`);
+                    }}
+                  />
                 </div>
               </TabsContent>
 
                <TabsContent value="trends" className="mt-0">
-                 <div className={`h-64 w-full relative rounded-lg overflow-hidden backdrop-blur-xl transition-all duration-300 hover:backdrop-blur-2xl hover:shadow-xl ${
+                 <div className={`h-80 w-full relative rounded-lg backdrop-blur-xl transition-all duration-300 hover:backdrop-blur-2xl hover:shadow-xl ${
                    theme === 'dark' 
                      ? 'bg-slate-800/20 border border-slate-700/30 hover:bg-slate-800/30 hover:border-slate-600/40' 
                      : 'bg-white/20 border border-white/30 hover:bg-white/30 hover:border-white/40 shadow-lg hover:shadow-slate-200/20'
                  }`}>
-                   {data && <TrendsChart data={data.monthlyMetrics} metric="revenue" />}
+                   {data && <TrendsChart data={data.monthlyMetrics} metric="revenue" theme={theme} />}
+                 </div>
+               </TabsContent>
+
+               <TabsContent value="traffic" className="mt-0">
+                 <div className={`w-full relative rounded-lg p-6 backdrop-blur-xl transition-all duration-300 hover:backdrop-blur-2xl hover:shadow-xl ${
+                   theme === 'dark' 
+                     ? 'bg-slate-800/20 border border-slate-700/30 hover:bg-slate-800/30 hover:border-slate-600/40' 
+                     : 'bg-white/20 border border-white/30 hover:bg-white/30 hover:border-white/40 shadow-lg hover:shadow-slate-200/20'
+                 }`}>
+                   {data && <TrafficChart data={data.monthlyMetrics} theme={theme} />}
                  </div>
                </TabsContent>
 
@@ -751,36 +775,68 @@ export default function Dashboard() {
     const currentSectionData = mockSectionData[activeSection as keyof typeof mockSectionData];
     
     return (
-      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div className="bg-slate-900/95 border border-slate-700/50 rounded-lg max-w-2xl w-full max-h-[80vh] overflow-y-auto">
-          <div className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-slate-100">{selectedMetric} Details</h2>
+      <div className={`fixed inset-0 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4 ${
+        theme === 'dark' ? 'bg-black/50' : 'bg-slate-900/20'
+      }`}>
+        <div className={`rounded-lg max-w-2xl w-full max-h-[90vh] sm:max-h-[80vh] overflow-y-auto shadow-2xl ${
+          theme === 'dark' 
+            ? 'bg-slate-900/95 border border-slate-700/50' 
+            : 'bg-white/95 border border-slate-200/50'
+        }`}>
+          <div className="p-3 sm:p-6">
+            <div className="flex items-center justify-between mb-3 sm:mb-4">
+              <h2 className={`text-lg sm:text-xl font-bold ${
+                theme === 'dark' ? 'text-slate-100' : 'text-slate-900'
+              }`}>{selectedMetric} Details</h2>
               <button
                 onClick={() => setShowDetailModal(false)}
-                className="text-slate-400 hover:text-slate-100 transition-colors"
+                className={`transition-colors p-1 ${
+                  theme === 'dark' 
+                    ? 'text-slate-400 hover:text-slate-100' 
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
               >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
             
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-3 sm:space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 {currentSectionData?.metrics.map((metric, index) => (
-                  <div key={index} className="bg-slate-800/50 p-4 rounded-lg border border-slate-700/50">
-                    <div className="text-sm text-slate-400 mb-1">{metric.label}</div>
-                    <div className="text-2xl font-bold text-slate-100 mb-1">{metric.value}</div>
-                    <div className={`text-xs ${metric.change.startsWith('+') ? 'text-green-400' : metric.change.startsWith('-') ? 'text-red-400' : 'text-slate-400'}`}>
+                  <div key={index} className={`p-3 sm:p-4 rounded-lg border ${
+                    theme === 'dark' 
+                      ? 'bg-slate-800/50 border-slate-700/50' 
+                      : 'bg-slate-50/50 border-slate-200/50'
+                  }`}>
+                    <div className={`text-xs sm:text-sm mb-1 ${
+                      theme === 'dark' ? 'text-slate-400' : 'text-slate-600'
+                    }`}>{metric.label}</div>
+                    <div className={`text-xl sm:text-2xl font-bold mb-1 ${
+                      theme === 'dark' ? 'text-slate-100' : 'text-slate-900'
+                    }`}>{metric.value}</div>
+                    <div className={`text-xs ${
+                      metric.change.startsWith('+') 
+                        ? theme === 'dark' ? 'text-green-400' : 'text-green-600'
+                        : metric.change.startsWith('-') 
+                        ? theme === 'dark' ? 'text-red-400' : 'text-red-600'
+                        : theme === 'dark' ? 'text-slate-400' : 'text-slate-600'
+                    }`}>
                       {metric.change} from last month
                     </div>
                   </div>
                 ))}
               </div>
               
-              <div className="mt-6 p-4 bg-slate-800/30 rounded-lg border border-slate-700/50">
-                <h3 className="text-sm font-medium text-slate-200 mb-2">Quick Actions</h3>
+              <div className={`mt-6 p-4 rounded-lg border ${
+                theme === 'dark' 
+                  ? 'bg-slate-800/30 border-slate-700/50' 
+                  : 'bg-slate-50/30 border-slate-200/50'
+              }`}>
+                <h3 className={`text-sm font-medium mb-2 ${
+                  theme === 'dark' ? 'text-slate-100' : 'text-slate-900'
+                }`}>Quick Actions</h3>
                 <div className="flex flex-wrap gap-2">
                   <button 
                     onClick={() => handleQuickAction('View Report', 'Generating detailed analytics report...')}
@@ -799,9 +855,11 @@ export default function Dashboard() {
                   <button 
                     onClick={() => handleQuickAction('Export Data', 'Preparing CSV export with current metrics...')}
                     disabled={quickActionLoading === 'Export Data'}
-                    className={`px-3 py-1 bg-purple-500/20 text-purple-400 rounded-md text-xs hover:bg-purple-500/30 transition-all duration-200 hover:scale-105 flex items-center gap-1 ${
-                      quickActionLoading === 'Export Data' ? 'opacity-50 cursor-not-allowed' : ''
-                    }`}
+                    className={`px-3 py-1 rounded-md text-xs transition-all duration-200 hover:scale-105 flex items-center gap-1 ${
+                      theme === 'dark' 
+                        ? 'bg-purple-500/20 text-purple-400 hover:bg-purple-500/30' 
+                        : 'bg-purple-100 text-purple-700 hover:bg-purple-200 border border-purple-200'
+                    } ${quickActionLoading === 'Export Data' ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
                     {quickActionLoading === 'Export Data' ? (
                       <RefreshCw className="w-3 h-3 animate-spin" />
@@ -813,9 +871,11 @@ export default function Dashboard() {
                   <button 
                     onClick={() => handleQuickAction('Set Alert', 'Creating performance monitoring alert...')}
                     disabled={quickActionLoading === 'Set Alert'}
-                    className={`px-3 py-1 bg-blue-500/20 text-blue-400 rounded-md text-xs hover:bg-blue-500/30 transition-all duration-200 hover:scale-105 flex items-center gap-1 ${
-                      quickActionLoading === 'Set Alert' ? 'opacity-50 cursor-not-allowed' : ''
-                    }`}
+                    className={`px-3 py-1 rounded-md text-xs transition-all duration-200 hover:scale-105 flex items-center gap-1 ${
+                      theme === 'dark' 
+                        ? 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30' 
+                        : 'bg-blue-100 text-blue-700 hover:bg-blue-200 border border-blue-200'
+                    } ${quickActionLoading === 'Set Alert' ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
                     {quickActionLoading === 'Set Alert' ? (
                       <RefreshCw className="w-3 h-3 animate-spin" />
@@ -827,9 +887,11 @@ export default function Dashboard() {
                   <button 
                     onClick={() => handleQuickAction('Schedule Review', 'Scheduling weekly performance review...')}
                     disabled={quickActionLoading === 'Schedule Review'}
-                    className={`px-3 py-1 bg-green-500/20 text-green-400 rounded-md text-xs hover:bg-green-500/30 transition-all duration-200 hover:scale-105 flex items-center gap-1 ${
-                      quickActionLoading === 'Schedule Review' ? 'opacity-50 cursor-not-allowed' : ''
-                    }`}
+                    className={`px-3 py-1 rounded-md text-xs transition-all duration-200 hover:scale-105 flex items-center gap-1 ${
+                      theme === 'dark' 
+                        ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30' 
+                        : 'bg-green-100 text-green-700 hover:bg-green-200 border border-green-200'
+                    } ${quickActionLoading === 'Schedule Review' ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
                     {quickActionLoading === 'Schedule Review' ? (
                       <RefreshCw className="w-3 h-3 animate-spin" />
@@ -841,9 +903,11 @@ export default function Dashboard() {
                   <button 
                     onClick={() => handleQuickAction('Refresh Data', 'Fetching latest analytics data...')}
                     disabled={quickActionLoading === 'Refresh Data'}
-                    className={`px-3 py-1 bg-orange-500/20 text-orange-400 rounded-md text-xs hover:bg-orange-500/30 transition-all duration-200 hover:scale-105 flex items-center gap-1 ${
-                      quickActionLoading === 'Refresh Data' ? 'opacity-50 cursor-not-allowed' : ''
-                    }`}
+                    className={`px-3 py-1 rounded-md text-xs transition-all duration-200 hover:scale-105 flex items-center gap-1 ${
+                      theme === 'dark' 
+                        ? 'bg-orange-500/20 text-orange-400 hover:bg-orange-500/30' 
+                        : 'bg-orange-100 text-orange-700 hover:bg-orange-200 border border-orange-200'
+                    } ${quickActionLoading === 'Refresh Data' ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
                     {quickActionLoading === 'Refresh Data' ? (
                       <RefreshCw className="w-3 h-3 animate-spin" />
@@ -855,9 +919,11 @@ export default function Dashboard() {
                   <button 
                     onClick={() => handleQuickAction('AI Analysis', 'Running AI-powered performance analysis...')}
                     disabled={quickActionLoading === 'AI Analysis'}
-                    className={`px-3 py-1 bg-indigo-500/20 text-indigo-400 rounded-md text-xs hover:bg-indigo-500/30 transition-all duration-200 hover:scale-105 flex items-center gap-1 ${
-                      quickActionLoading === 'AI Analysis' ? 'opacity-50 cursor-not-allowed' : ''
-                    }`}
+                    className={`px-3 py-1 rounded-md text-xs transition-all duration-200 hover:scale-105 flex items-center gap-1 ${
+                      theme === 'dark' 
+                        ? 'bg-indigo-500/20 text-indigo-400 hover:bg-indigo-500/30' 
+                        : 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200 border border-indigo-200'
+                    } ${quickActionLoading === 'AI Analysis' ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
                     {quickActionLoading === 'AI Analysis' ? (
                       <RefreshCw className="w-3 h-3 animate-spin" />
@@ -879,10 +945,10 @@ export default function Dashboard() {
     <div className={`${theme} min-h-screen transition-colors duration-300 ${
       theme === 'dark' 
         ? 'bg-gradient-to-br from-black to-slate-900 text-slate-100' 
-        : 'bg-gradient-to-br from-slate-50 to-slate-200 text-slate-900'
+        : 'bg-gradient-to-br from-gray-100 via-gray-50 to-white text-slate-800'
     } relative overflow-hidden`}>
       {/* Background particle effect */}
-      <canvas ref={canvasRef} className="absolute inset-0 w-full h-full opacity-30" />
+      <canvas ref={canvasRef} className={`absolute inset-0 w-full h-full ${theme === 'dark' ? 'opacity-30' : 'opacity-20'}`} />
       
       {/* Detail Modal */}
       <DetailModal />
@@ -914,17 +980,17 @@ export default function Dashboard() {
         </div>
       )}
 
-      <div className="container mx-auto p-4 relative z-10">
-        {/* Header */}
-        <header className="flex items-center justify-between py-4 border-b border-slate-700/50 mb-6">
+      <div className="container mx-auto p-2 sm:p-4 relative z-10 max-w-full">
+        {/* Responsive Header */}
+        <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between py-3 sm:py-4 border-b border-slate-700/50 mb-4 sm:mb-6 gap-3 sm:gap-0">
           <div className="flex items-center space-x-2 animate-fade-in-scale">
-            <Hexagon className="h-8 w-8 text-cyan-500 animate-float" />
-            <span className="text-xl font-bold gradient-text">
+            <Hexagon className="h-6 w-6 sm:h-8 sm:w-8 text-cyan-500 animate-float" />
+            <span className="text-lg sm:text-xl font-bold gradient-text">
               NextGen Dashboard
             </span>
           </div>
 
-                      <div className="flex items-center space-x-6">
+          <div className="flex items-center space-x-3 sm:space-x-6 w-full sm:w-auto justify-between sm:justify-end">
             <AdvancedSearch 
               isOpen={searchOpen}
               onClose={() => setSearchOpen(false)}
@@ -934,46 +1000,145 @@ export default function Dashboard() {
               }}
             />
 
-            <div className="flex items-center space-x-3">
-              <NotificationCenter />
+            <div className="flex items-center space-x-2 sm:space-x-3">
+              <NotificationCenter theme={theme} />
 
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={toggleTheme}
-                      className="text-slate-400 hover:text-slate-100"
-                    >
-                      {theme === "dark" ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <div className="text-xs">
-                      <p>Toggle theme (⌘D)</p>
-                      <p className="text-slate-400 mt-1">⌘R: Refresh • ⌘K: Search • ⌘L: Loading</p>
-                    </div>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              <button
+                onClick={toggleTheme}
+                className={`relative group overflow-hidden rounded-xl h-8 w-8 sm:h-10 sm:w-10 transition-all duration-500 transform hover:scale-110 active:scale-95 ${
+                  theme === 'dark'
+                    ? 'bg-gradient-to-br from-slate-800/50 to-slate-900/50 border border-slate-700/50 hover:border-yellow-500/50 shadow-lg hover:shadow-yellow-500/25'
+                    : 'bg-white/70 border border-white/50 hover:border-white/70 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.8),0_4px_16px_rgba(0,0,0,0.06)] hover:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.9),0_8px_32px_rgba(0,0,0,0.12)]'
+                } backdrop-blur-sm hover:backdrop-blur-md`}
+              >
+                {/* Background glow effect */}
+                <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 ${
+                  theme === 'dark'
+                    ? 'bg-gradient-to-br from-yellow-500/20 to-orange-500/20'
+                    : 'bg-gradient-to-br from-blue-500/20 to-indigo-500/20'
+                }`}></div>
+                
+                {/* Rotating background effect */}
+                <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-all duration-700 transform group-hover:rotate-180 ${
+                  theme === 'dark'
+                    ? 'bg-gradient-to-r from-yellow-400/10 via-transparent to-orange-400/10'
+                    : 'bg-gradient-to-r from-blue-400/10 via-transparent to-indigo-400/10'
+                }`}></div>
+                
+                {/* Icon container */}
+                <div className="relative z-10 flex items-center justify-center h-full w-full">
+                  {theme === "dark" ? (
+                    <Sun className={`h-4 w-4 sm:h-5 sm:w-5 transition-all duration-500 transform group-hover:rotate-180 group-hover:scale-110 ${
+                      'text-yellow-400 group-hover:text-yellow-300 drop-shadow-[0_0_8px_rgba(250,204,21,0.5)] group-hover:drop-shadow-[0_0_12px_rgba(250,204,21,0.8)]'
+                    }`} />
+                  ) : (
+                    <Moon className={`h-4 w-4 sm:h-5 sm:w-5 transition-all duration-500 transform group-hover:-rotate-12 group-hover:scale-110 ${
+                      'text-indigo-600 group-hover:text-indigo-500 drop-shadow-[0_0_8px_rgba(79,70,229,0.5)] group-hover:drop-shadow-[0_0_12px_rgba(79,70,229,0.8)]'
+                    }`} />
+                  )}
+                </div>
+                
+                {/* Pulse effect on click */}
+                <div className={`absolute inset-0 rounded-xl opacity-0 group-active:opacity-100 transition-opacity duration-150 ${
+                  theme === 'dark'
+                    ? 'bg-yellow-400/30'
+                    : 'bg-indigo-400/30'
+                } animate-ping`}></div>
+                
+                {/* Shimmer effect */}
+                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                  <div className={`absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ${
+                    theme === 'dark' ? 'via-yellow-200/30' : 'via-blue-200/30'
+                  }`}></div>
+                </div>
+              </button>
 
-              <Avatar>
+              <Avatar className="h-8 w-8 sm:h-10 sm:w-10">
                 <AvatarImage src="/placeholder.svg?height=40&width=40" alt="User" />
-                <AvatarFallback className="bg-slate-700 text-cyan-500">CH</AvatarFallback>
+                <AvatarFallback className="bg-slate-700 text-cyan-500 text-xs sm:text-sm">CH</AvatarFallback>
               </Avatar>
             </div>
           </div>
         </header>
 
-        {/* Main content */}
-        <div className="grid grid-cols-12 gap-6">
-          {/* Sidebar */}
-          <div className="col-span-12 md:col-span-3 lg:col-span-2">
+        {/* Responsive Main content */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4 lg:gap-6">
+          {/* Mobile/Tablet Navigation */}
+          <div className="lg:hidden col-span-1">
+            <Card className={`backdrop-blur-xl transition-all duration-300 hover:backdrop-blur-2xl hover:shadow-xl ${
+              theme === 'dark' 
+                ? 'bg-slate-900/20 border-slate-700/20 hover:bg-slate-900/30 hover:border-slate-600/30' 
+                : 'bg-white/60 border-white/40 hover:bg-white/80 hover:border-white/60 shadow-lg hover:shadow-blue-200/30'
+            }`}>
+              <CardContent className="p-2 sm:p-3">
+                <nav className="flex overflow-x-auto space-x-2 pb-2">
+                  <NavItem 
+                    icon={Command} 
+                    label="Dashboard" 
+                    active={activeSection === "Dashboard"} 
+                    onClick={() => handleSectionClick("Dashboard")}
+                    theme={theme}
+                  />
+                  <NavItem 
+                    icon={PlayIcon} 
+                    label="YouTube" 
+                    active={activeSection === "YouTube"}
+                    onClick={() => handleSectionClick("YouTube")}
+                    theme={theme}
+                  />
+                  <NavItem 
+                    icon={PhoneIcon} 
+                    label="Calls" 
+                    active={activeSection === "Calls"}
+                    onClick={() => handleSectionClick("Calls")}
+                    theme={theme}
+                  />
+                  <NavItem 
+                    icon={CurrencyDollarIcon} 
+                    label="Revenue" 
+                    active={activeSection === "Revenue"}
+                    onClick={() => handleSectionClick("Revenue")}
+                    theme={theme}
+                  />
+                  <NavItem 
+                    icon={UserGroupIcon} 
+                    label="Leads" 
+                    active={activeSection === "Leads"}
+                    onClick={() => handleSectionClick("Leads")}
+                    theme={theme}
+                  />
+                  <NavItem 
+                    icon={BarChart3} 
+                    label="Analytics" 
+                    active={activeSection === "Analytics"}
+                    onClick={() => handleSectionClick("Analytics")}
+                    theme={theme}
+                  />
+                  <NavItem 
+                    icon={Terminal} 
+                    label="AI Insights" 
+                    active={activeSection === "AI Insights"}
+                    onClick={() => handleSectionClick("AI Insights")}
+                    theme={theme}
+                  />
+                  <NavItem 
+                    icon={Settings} 
+                    label="Settings" 
+                    active={activeSection === "Settings"}
+                    onClick={() => handleSectionClick("Settings")}
+                    theme={theme}
+                  />
+                </nav>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Desktop Sidebar */}
+          <div className="hidden lg:block lg:col-span-2">
             <Card className={`backdrop-blur-xl h-full transition-all duration-300 hover:backdrop-blur-2xl hover:shadow-xl ${
               theme === 'dark' 
                 ? 'bg-slate-900/20 border-slate-700/20 hover:bg-slate-900/30 hover:border-slate-600/30' 
-                : 'bg-white/10 border-white/20 hover:bg-white/20 hover:border-white/30 shadow-lg hover:shadow-slate-200/20'
+                : 'bg-white/60 border-white/40 hover:bg-white/80 hover:border-white/60 shadow-lg hover:shadow-blue-200/30'
             }`}>
               <CardContent className="p-4">
                 <nav className="space-y-2">
@@ -1038,37 +1203,39 @@ export default function Dashboard() {
             </Card>
           </div>
 
-          {/* Main dashboard */}
-          <div className="col-span-12 md:col-span-9 lg:col-span-7">
-            <div className="grid gap-6">
+          {/* Main dashboard content */}
+          <div className="col-span-1 lg:col-span-7">
+            <div className="grid gap-3 sm:gap-4 lg:gap-6">
               {activeSection === "Dashboard" ? renderDefaultDashboard() : renderSectionContent()}
             </div>
           </div>
 
-          {/* Right sidebar */}
-          <div className="col-span-12 lg:col-span-3">
+          {/* Right sidebar - responsive */}
+          <div className="col-span-1 lg:col-span-3">
             <div className="grid gap-6">
               {/* AI Insights */}
               <Card className={`backdrop-blur-xl transition-all duration-300 hover:backdrop-blur-2xl hover:shadow-xl hover:scale-[1.02] ${
                 theme === 'dark' 
-                  ? 'bg-slate-900/20 border-slate-700/20 hover:bg-slate-900/30 hover:border-slate-600/30' 
-                  : 'bg-white/10 border-white/20 hover:bg-white/20 hover:border-white/30 shadow-lg hover:shadow-slate-200/20'
+                  ? 'bg-gradient-to-br from-indigo-900/30 to-purple-900/20 border-indigo-500/30 hover:from-indigo-800/40 hover:to-purple-800/30 hover:border-indigo-400/40 hover:shadow-indigo-500/30' 
+                  : 'bg-gradient-to-br from-white/70 to-indigo-50/70 border-white/50 hover:from-white/80 hover:to-indigo-50/80 hover:border-white/70 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.7),0_8px_32px_rgba(99,102,241,0.08)] hover:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.9),0_16px_64px_rgba(99,102,241,0.12)]'
               }`}>
                 <CardHeader 
                   className={`pb-3 cursor-pointer transition-colors ${
                     theme === 'dark' 
-                      ? 'border-b border-slate-700/50 hover:bg-slate-800/30' 
-                      : 'border-b border-slate-200/50 hover:bg-slate-100/30'
+                      ? 'border-b border-indigo-500/30 hover:bg-indigo-800/20' 
+                      : 'border-b border-white/40 hover:bg-white/20'
                   }`}
                   onClick={() => handleSectionClick("AI Insights")}
                 >
                   <CardTitle className={`flex items-center text-sm ${
-                    theme === 'dark' ? 'text-slate-100' : 'text-slate-900'
+                    theme === 'dark' ? 'text-indigo-100' : 'text-slate-800'
                   }`}>
-                    <Terminal className="mr-2 h-4 w-4 text-purple-500" />
+                    <Terminal className={`mr-2 h-4 w-4 ${
+                      theme === 'dark' ? 'text-indigo-400' : 'text-indigo-600'
+                    }`} />
                     AI Insights
                     <svg className={`w-4 h-4 ml-auto ${
-                      theme === 'dark' ? 'text-slate-400' : 'text-slate-600'
+                      theme === 'dark' ? 'text-indigo-300' : 'text-indigo-700'
                     }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                     </svg>
@@ -1094,7 +1261,7 @@ export default function Dashboard() {
               <Card className={`backdrop-blur-xl transition-all duration-300 hover:backdrop-blur-2xl hover:shadow-xl hover:scale-[1.02] ${
                 theme === 'dark' 
                   ? 'bg-slate-900/20 border-slate-700/20 hover:bg-slate-900/30 hover:border-slate-600/30' 
-                  : 'bg-white/10 border-white/20 hover:bg-white/20 hover:border-white/30 shadow-lg hover:shadow-slate-200/20'
+                  : 'bg-white/70 border-green-200/40 hover:bg-white/90 hover:border-green-300/60 shadow-lg hover:shadow-green-200/30'
               }`}>
                 <CardHeader 
                   className={`pb-3 cursor-pointer transition-colors ${
@@ -1131,7 +1298,7 @@ export default function Dashboard() {
                           theme === 'dark' ? 'text-slate-400' : 'text-slate-600'
                         }`}>Show-up Rate</span>
                         <span className={`text-sm font-medium ${
-                          theme === 'dark' ? 'text-slate-200' : 'text-slate-800'
+                          theme === 'dark' ? 'text-slate-100' : 'text-slate-900'
                         }`}>{currentMonth.showUpRate.toFixed(1)}%</span>
                       </div>
                       <Progress value={currentMonth.showUpRate} className="h-2 mt-2" />
@@ -1150,7 +1317,7 @@ export default function Dashboard() {
                           theme === 'dark' ? 'text-slate-400' : 'text-slate-600'
                         }`}>Call → Sale Rate</span>
                         <span className={`text-sm font-medium ${
-                          theme === 'dark' ? 'text-slate-200' : 'text-slate-800'
+                          theme === 'dark' ? 'text-slate-100' : 'text-slate-900'
                         }`}>{currentMonth.conversionRates.acceptedToSale.toFixed(1)}%</span>
                       </div>
                       <Progress value={currentMonth.conversionRates.acceptedToSale} className="h-2 mt-2" />
@@ -1169,7 +1336,7 @@ export default function Dashboard() {
                           theme === 'dark' ? 'text-slate-400' : 'text-slate-600'
                         }`}>Website → Call Rate</span>
                         <span className={`text-sm font-medium ${
-                          theme === 'dark' ? 'text-slate-200' : 'text-slate-800'
+                          theme === 'dark' ? 'text-slate-100' : 'text-slate-900'
                         }`}>{currentMonth.conversionRates.websiteToCall.toFixed(1)}%</span>
                       </div>
                       <Progress value={currentMonth.conversionRates.websiteToCall} className="h-2 mt-2" />
@@ -1180,15 +1347,17 @@ export default function Dashboard() {
 
               {/* Time Display */}
               <Card 
-                className={`backdrop-blur-xl cursor-pointer hover:scale-105 transition-all duration-300 hover:backdrop-blur-2xl hover:shadow-2xl hover:shadow-cyan-500/30 ${
+                className={`backdrop-blur-xl cursor-pointer hover:scale-105 transition-all duration-300 hover:backdrop-blur-2xl hover:shadow-2xl ${
                   theme === 'dark' 
-                    ? 'bg-slate-900/20 border-slate-700/20 hover:bg-slate-900/30 hover:border-slate-600/30' 
-                    : 'bg-white/10 border-white/20 hover:bg-white/20 hover:border-white/30 shadow-lg hover:shadow-slate-200/20'
+                    ? 'bg-slate-900/20 border-slate-700/20 hover:bg-slate-900/30 hover:border-slate-600/30 hover:shadow-cyan-500/30' 
+                    : 'bg-white/70 border-cyan-200/40 hover:bg-white/90 hover:border-cyan-300/60 shadow-lg hover:shadow-cyan-200/30'
                 }`}
                 onClick={() => handleMetricClick("Time & Analytics")}
               >
                 <CardContent className="p-4 text-center">
-                  <div className="text-2xl font-mono text-cyan-400 mb-1">
+                  <div className={`text-2xl font-mono mb-1 ${
+                    theme === 'dark' ? 'text-cyan-400' : 'text-cyan-600'
+                  }`}>
                     {formatTime(currentTime)}
                   </div>
                   <div className={`text-xs ${
@@ -1197,7 +1366,7 @@ export default function Dashboard() {
                     {formatDate(currentTime)}
                   </div>
                   <div className={`text-xs mt-2 ${
-                    theme === 'dark' ? 'text-slate-500' : 'text-slate-500'
+                    theme === 'dark' ? 'text-slate-500' : 'text-slate-600'
                   }`}>
                     {formatMonth(currentMonth.month)} Analytics
                   </div>
@@ -1228,18 +1397,18 @@ function NavItem({
   return (
     <button
       onClick={onClick}
-      className={`w-full flex items-center space-x-2 px-3 py-2 rounded-md text-sm transition-all duration-300 hover:scale-105 backdrop-blur-sm hover:backdrop-blur-md ${
+      className={`flex-shrink-0 lg:w-full flex items-center space-x-1 lg:space-x-2 px-2 sm:px-3 py-2 rounded-lg text-xs sm:text-sm transition-all duration-300 hover:scale-105 backdrop-blur-sm hover:backdrop-blur-md ${
         active
           ? theme === 'dark'
-            ? "bg-slate-800/40 text-cyan-400 border border-slate-700/40 shadow-lg shadow-cyan-500/20 hover:shadow-xl hover:shadow-cyan-500/30"
-            : "bg-white/40 text-cyan-600 border border-white/40 shadow-lg shadow-cyan-500/20 hover:shadow-xl hover:shadow-cyan-500/30"
+            ? "bg-gradient-to-r from-blue-600/20 to-purple-600/20 text-blue-400 border border-blue-500/30 shadow-lg shadow-blue-500/20 hover:shadow-xl hover:shadow-blue-500/30"
+            : "bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700 border border-blue-300/50 shadow-lg shadow-blue-200/30 hover:shadow-xl hover:shadow-blue-300/40"
           : theme === 'dark'
             ? "text-slate-400 hover:text-slate-100 hover:bg-slate-800/30 hover:shadow-lg hover:shadow-slate-900/50"
-            : "text-slate-600 hover:text-slate-900 hover:bg-white/30 hover:shadow-lg hover:shadow-slate-200/30"
+            : "text-slate-700 hover:text-slate-900 hover:bg-white/70 hover:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.8),0_4px_16px_rgba(0,0,0,0.08)] hover:border hover:border-white/60"
       }`}
     >
-      <Icon className="h-4 w-4" />
-      <span>{label}</span>
+      <Icon className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+      <span className="font-medium whitespace-nowrap lg:whitespace-normal">{label}</span>
     </button>
   );
 }
@@ -1281,13 +1450,13 @@ function CoachingMetricCard({
     } else {
       switch (color) {
         case "cyan":
-          return "from-cyan-100/50 to-cyan-200/50 border-cyan-300/50";
+          return "from-white/70 to-cyan-50/70 border-white/50 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.8),0_8px_32px_rgba(6,182,212,0.08)]";
         case "purple":
-          return "from-purple-100/50 to-purple-200/50 border-purple-300/50";
+          return "from-white/70 to-purple-50/70 border-white/50 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.8),0_8px_32px_rgba(147,51,234,0.08)]";
         case "blue":
-          return "from-blue-100/50 to-blue-200/50 border-blue-300/50";
+          return "from-white/70 to-blue-50/70 border-white/50 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.8),0_8px_32px_rgba(59,130,246,0.08)]";
         default:
-          return "from-slate-100/50 to-slate-200/50 border-slate-300/50";
+          return "from-white/70 to-gray-50/70 border-white/50 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.8),0_8px_32px_rgba(0,0,0,0.06)]";
       }
     }
   };
@@ -1324,7 +1493,11 @@ function CoachingMetricCard({
   return (
     <div 
       onClick={onClick}
-      className={`bg-gradient-to-br ${getColor()} rounded-lg border p-4 backdrop-blur-xl cursor-pointer transition-all duration-300 hover:scale-105 hover:backdrop-blur-2xl hover:shadow-2xl hover:shadow-${color}-500/30 ${onClick ? 'hover:border-' + color + '-400/60' : ''}`}
+      className={`bg-gradient-to-br ${getColor()} rounded-xl border p-4 backdrop-blur-xl cursor-pointer transition-all duration-300 hover:scale-105 hover:backdrop-blur-2xl ${
+        theme === 'dark' 
+          ? `hover:shadow-2xl hover:shadow-${color}-500/30 ${onClick ? 'hover:border-' + color + '-400/60' : ''}` 
+          : `hover:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.9),0_16px_64px_rgba(0,0,0,0.12)] ${onClick ? 'hover:border-white/70' : ''}`
+      }`}
     >
       <div className="flex items-start justify-between">
         <div className="flex-1">
@@ -1335,7 +1508,7 @@ function CoachingMetricCard({
             }`}>{title}</p>
           </div>
           <p className={`text-xl font-bold ${
-            theme === 'dark' ? 'text-slate-100' : 'text-slate-900'
+            theme === 'dark' ? 'text-slate-100' : 'text-slate-800'
           }`}>
             {title.includes("Revenue") ? `$${value.toLocaleString()}` : value.toLocaleString()}
           </p>
@@ -1386,9 +1559,9 @@ function AlertItem({
         };
       case "warning":
         return {
-          bg: "bg-yellow-500/10 border-yellow-500/20",
-          icon: "text-yellow-400",
-          text: "text-yellow-300",
+          bg: "bg-amber-500/10 border-amber-500/20",
+          icon: "text-amber-400",
+          text: "text-amber-300",
         };
       case "success":
         return {

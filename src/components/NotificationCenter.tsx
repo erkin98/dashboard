@@ -23,7 +23,11 @@ interface Notification {
   onAction?: () => void;
 }
 
-const NotificationCenter: React.FC = () => {
+interface NotificationCenterProps {
+  theme?: string;
+}
+
+const NotificationCenter: React.FC<NotificationCenterProps> = ({ theme = 'dark' }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -175,9 +179,15 @@ const NotificationCenter: React.FC = () => {
       {/* Notification Bell */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 rounded-lg bg-slate-800/50 border border-slate-700/50 hover:bg-slate-700/50 transition-all duration-200 hover-lift"
+        className={`relative p-2 rounded-lg transition-all duration-200 hover-lift ${
+          theme === 'dark'
+            ? 'bg-slate-800/50 border border-slate-700/50 hover:bg-slate-700/50'
+            : 'bg-white/50 border border-slate-200/50 hover:bg-slate-100/50'
+        }`}
       >
-        <Bell className="w-5 h-5 text-slate-300" />
+        <Bell className={`w-5 h-5 ${
+          theme === 'dark' ? 'text-slate-300' : 'text-slate-600'
+        }`} />
         {unreadCount > 0 && (
           <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center animate-pulse-glow">
             {unreadCount > 9 ? '9+' : unreadCount}
@@ -195,12 +205,22 @@ const NotificationCenter: React.FC = () => {
           />
           
           {/* Panel */}
-          <div className="absolute right-0 top-12 w-96 max-h-96 bg-slate-900/95 backdrop-blur-xl border border-slate-700/50 rounded-xl shadow-2xl z-50 animate-slide-in-right">
+          <div className={`absolute right-0 top-12 w-96 max-h-96 backdrop-blur-xl rounded-xl shadow-2xl z-50 animate-slide-in-right ${
+            theme === 'dark'
+              ? 'bg-slate-900/95 border border-slate-700/50'
+              : 'bg-white/95 border border-slate-200/50'
+          }`}>
             {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b border-slate-700/50">
+            <div className={`flex items-center justify-between p-4 ${
+              theme === 'dark' 
+                ? 'border-b border-slate-700/50' 
+                : 'border-b border-slate-200/50'
+            }`}>
               <div className="flex items-center gap-2">
                 <Bell className="w-5 h-5 text-cyan-400" />
-                <h3 className="font-semibold text-white">Notifications</h3>
+                <h3 className={`font-semibold ${
+                  theme === 'dark' ? 'text-white' : 'text-slate-900'
+                }`}>Notifications</h3>
                 {unreadCount > 0 && (
                   <span className="bg-cyan-500/20 text-cyan-400 text-xs px-2 py-1 rounded-full">
                     {unreadCount} new
@@ -211,14 +231,22 @@ const NotificationCenter: React.FC = () => {
                 {unreadCount > 0 && (
                   <button
                     onClick={markAllAsRead}
-                    className="text-xs text-slate-400 hover:text-white transition-colors"
+                    className={`text-xs transition-colors ${
+                      theme === 'dark' 
+                        ? 'text-slate-400 hover:text-white' 
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
                   >
                     Mark all read
                   </button>
                 )}
                 <button
                   onClick={() => setIsOpen(false)}
-                  className="text-slate-400 hover:text-white transition-colors"
+                  className={`transition-colors ${
+                    theme === 'dark' 
+                      ? 'text-slate-400 hover:text-white' 
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -228,7 +256,9 @@ const NotificationCenter: React.FC = () => {
             {/* Notifications List */}
             <div className="max-h-80 overflow-y-auto">
               {notifications.length === 0 ? (
-                <div className="p-8 text-center text-slate-400">
+                <div className={`p-8 text-center ${
+                  theme === 'dark' ? 'text-slate-400' : 'text-slate-600'
+                }`}>
                   <Bell className="w-8 h-8 mx-auto mb-2 opacity-50" />
                   <p>No notifications yet</p>
                   <p className="text-xs mt-1">We&apos;ll notify you of important updates</p>
@@ -240,7 +270,9 @@ const NotificationCenter: React.FC = () => {
                       key={notification.id}
                       className={`p-3 rounded-lg border transition-all duration-200 ${
                         notification.read 
-                          ? 'bg-slate-800/30 border-slate-700/30' 
+                          ? theme === 'dark'
+                            ? 'bg-slate-800/30 border-slate-700/30'
+                            : 'bg-slate-100/30 border-slate-200/30'
                           : `${getNotificationStyles(notification.type)} border-opacity-50`
                       }`}
                     >
@@ -252,26 +284,36 @@ const NotificationCenter: React.FC = () => {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between gap-2">
                             <h4 className={`font-medium text-sm ${
-                              notification.read ? 'text-slate-300' : 'text-white'
+                              notification.read 
+                                ? theme === 'dark' ? 'text-slate-300' : 'text-slate-600'
+                                : theme === 'dark' ? 'text-white' : 'text-slate-900'
                             }`}>
                               {notification.title}
                             </h4>
                             <button
                               onClick={() => dismissNotification(notification.id)}
-                              className="text-slate-500 hover:text-slate-300 transition-colors"
+                              className={`transition-colors ${
+                                theme === 'dark' 
+                                  ? 'text-slate-500 hover:text-slate-300' 
+                                  : 'text-slate-400 hover:text-slate-600'
+                              }`}
                             >
                               <X className="w-3 h-3" />
                             </button>
                           </div>
                           
                           <p className={`text-xs mt-1 ${
-                            notification.read ? 'text-slate-400' : 'text-slate-300'
+                            notification.read 
+                              ? theme === 'dark' ? 'text-slate-400' : 'text-slate-500'
+                              : theme === 'dark' ? 'text-slate-300' : 'text-slate-700'
                           }`}>
                             {notification.message}
                           </p>
                           
                           <div className="flex items-center justify-between mt-2">
-                            <div className="flex items-center gap-1 text-xs text-slate-500">
+                            <div className={`flex items-center gap-1 text-xs ${
+                              theme === 'dark' ? 'text-slate-500' : 'text-slate-400'
+                            }`}>
                               <Clock className="w-3 h-3" />
                               {formatTimestamp(notification.timestamp)}
                             </div>
@@ -288,7 +330,11 @@ const NotificationCenter: React.FC = () => {
                               {!notification.read && (
                                 <button
                                   onClick={() => markAsRead(notification.id)}
-                                  className="text-xs text-slate-500 hover:text-slate-300 transition-colors"
+                                  className={`text-xs transition-colors ${
+                                    theme === 'dark' 
+                                      ? 'text-slate-500 hover:text-slate-300' 
+                                      : 'text-slate-400 hover:text-slate-600'
+                                  }`}
                                 >
                                   Mark read
                                 </button>
@@ -305,8 +351,16 @@ const NotificationCenter: React.FC = () => {
 
             {/* Footer */}
             {notifications.length > 0 && (
-              <div className="p-3 border-t border-slate-700/50 bg-slate-800/30">
-                <button className="flex items-center gap-2 text-xs text-slate-400 hover:text-white transition-colors w-full justify-center">
+              <div className={`p-3 ${
+                theme === 'dark' 
+                  ? 'border-t border-slate-700/50 bg-slate-800/30' 
+                  : 'border-t border-slate-200/50 bg-slate-100/30'
+              }`}>
+                <button className={`flex items-center gap-2 text-xs transition-colors w-full justify-center ${
+                  theme === 'dark' 
+                    ? 'text-slate-400 hover:text-white' 
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}>
                   <Settings className="w-3 h-3" />
                   Notification Settings
                 </button>

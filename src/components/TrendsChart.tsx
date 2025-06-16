@@ -7,9 +7,10 @@ interface TrendsChartProps {
   data: MonthlyMetrics[];
   metric: 'revenue' | 'views' | 'calls' | 'conversions';
   className?: string;
+  theme?: string;
 }
 
-export function TrendsChart({ data, metric, className = '' }: TrendsChartProps) {
+export function TrendsChart({ data, metric, className = '', theme }: TrendsChartProps) {
   const formatMonth = (month: string) => {
     return new Date(month + '-01').toLocaleDateString('en-US', { 
       month: 'short', 
@@ -86,50 +87,68 @@ export function TrendsChart({ data, metric, className = '' }: TrendsChartProps) 
   };
 
   return (
-    <div className={`bg-slate-900/50 backdrop-blur-sm border border-slate-700/50 rounded-xl p-6 ${className}`}>
-      <div className="flex items-center justify-between mb-6">
-        <h3 className="text-lg font-semibold text-slate-100">{config.title}</h3>
+    <div className={`backdrop-blur-sm border rounded-xl p-4 ${
+      theme === 'dark' 
+        ? 'bg-slate-900/50 border-slate-700/50' 
+        : 'bg-white/50 border-slate-200/50'
+    } ${className}`}>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className={`text-lg font-semibold ${
+          theme === 'dark' ? 'text-slate-100' : 'text-slate-900'
+        }`}>{config.title}</h3>
         <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></div>
       </div>
       
-      <div className="h-80">
+      <div className="h-72 w-full">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#475569" opacity={0.3} />
+          <LineChart 
+            data={chartData} 
+            margin={{ top: 20, right: 50, left: 70, bottom: 60 }}
+          >
+            <CartesianGrid 
+              strokeDasharray="3 3" 
+              stroke={theme === 'dark' ? '#475569' : '#cbd5e1'} 
+              opacity={0.3} 
+            />
             <XAxis 
               dataKey="month" 
-              stroke="#94a3b8"
+              stroke={theme === 'dark' ? '#94a3b8' : '#64748b'}
               fontSize={12}
-              axisLine={{ stroke: '#475569' }}
-              tickLine={{ stroke: '#475569' }}
+              axisLine={{ stroke: theme === 'dark' ? '#475569' : '#cbd5e1' }}
+              tickLine={{ stroke: theme === 'dark' ? '#475569' : '#cbd5e1' }}
+              tick={{ fill: theme === 'dark' ? '#94a3b8' : '#64748b' }}
+              height={60}
             />
             <YAxis 
-              stroke="#94a3b8"
+              stroke={theme === 'dark' ? '#94a3b8' : '#64748b'}
               fontSize={12}
               tickFormatter={config.yAxisFormatter}
-              axisLine={{ stroke: '#475569' }}
-              tickLine={{ stroke: '#475569' }}
+              axisLine={{ stroke: theme === 'dark' ? '#475569' : '#cbd5e1' }}
+              tickLine={{ stroke: theme === 'dark' ? '#475569' : '#cbd5e1' }}
+              tick={{ fill: theme === 'dark' ? '#94a3b8' : '#64748b' }}
+              width={70}
             />
             <Tooltip 
               contentStyle={{
-                backgroundColor: 'rgba(15, 23, 42, 0.95)',
-                border: '1px solid rgba(71, 85, 105, 0.5)',
+                backgroundColor: theme === 'dark' ? 'rgba(15, 23, 42, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+                border: theme === 'dark' ? '1px solid rgba(71, 85, 105, 0.5)' : '1px solid rgba(203, 213, 225, 0.5)',
                 borderRadius: '12px',
                 boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
                 backdropFilter: 'blur(16px)',
-                color: '#e2e8f0',
+                color: theme === 'dark' ? '#e2e8f0' : '#334155',
               }}
-              labelStyle={{ color: '#cbd5e1' }}
+              labelStyle={{ color: theme === 'dark' ? '#cbd5e1' : '#64748b' }}
               formatter={(value: number, name: string) => [
-                <span key={name} style={{ color: '#f1f5f9' }}>{config.yAxisFormatter(value)}</span>,
-                <span key={`${name}-label`} style={{ color: '#94a3b8' }}>{name}</span>
+                <span key={name} style={{ color: theme === 'dark' ? '#f1f5f9' : '#0f172a' }}>{config.yAxisFormatter(value)}</span>,
+                <span key={`${name}-label`} style={{ color: theme === 'dark' ? '#94a3b8' : '#64748b' }}>{name}</span>
               ]}
             />
             <Legend 
               wrapperStyle={{ 
                 paddingTop: '20px',
-                color: '#94a3b8'
+                color: theme === 'dark' ? '#94a3b8' : '#64748b'
               }}
+              height={36}
             />
             {config.lines.map((line) => (
               <Line
