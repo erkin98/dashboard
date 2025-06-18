@@ -15,6 +15,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "High-Ticket Coaching Dashboard",
   description: "Comprehensive analytics dashboard for high-ticket coaching businesses. Track YouTube views, sales funnel, revenue, and performance metrics.",
+  viewport: "width=device-width, initial-scale=1, maximum-scale=5",
 };
 
 export default function RootLayout({

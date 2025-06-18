@@ -1313,7 +1313,7 @@ export default function Dashboard() {
         </div>
       )}
 
-      <div className="container mx-auto p-2 sm:p-4 relative z-10 max-w-full">
+      <div className="w-full max-w-none px-2 sm:px-4 lg:px-6 xl:px-8 relative z-10">
         {/* Premium Header */}
         <header className={`flex flex-col sm:flex-row items-start sm:items-center justify-between py-4 sm:py-6 mb-6 sm:mb-8 gap-3 sm:gap-0 backdrop-blur-xl rounded-2xl transition-all duration-500 ${
           theme === 'dark' 
@@ -1423,7 +1423,7 @@ export default function Dashboard() {
                 : 'bg-white/60 border-white/40 hover:bg-white/80 hover:border-white/60 shadow-lg hover:shadow-blue-200/30'
             }`}>
               <CardContent className="p-2 sm:p-3">
-                <nav className="flex overflow-x-auto space-x-2 pb-2">
+                <nav className="flex overflow-x-auto scrollbar-hide space-x-2 pb-2 min-w-0">
                   <NavItem 
                     icon={Command} 
                     label="Dashboard" 
