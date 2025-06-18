@@ -4,13 +4,7 @@
   "framework": "nextjs",
   "installCommand": "yarn install",
   "devCommand": "yarn dev",
-  "regions": ["iad1", "sfo1", "lhr1"],
-  "functions": {
-    "src/app/api/**/*.ts": {
-      "runtime": "nodejs18.x",
-      "maxDuration": 30
-    }
-  },
+
   "headers": [
     {
       "source": "/(.*)",
@@ -63,7 +57,7 @@
   "crons": [
     {
       "path": "/api/dashboard",
-      "schedule": "0 */6 * * *"
+      "schedule": "0 9 * * *"
     }
   ]
 } 
