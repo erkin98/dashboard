@@ -8,7 +8,8 @@ import {
   UserGroupIcon,
   TrophyIcon,
   ArrowTrendingUpIcon,
-  ArrowTrendingDownIcon
+  ArrowTrendingDownIcon,
+  GlobeAltIcon
 } from '@heroicons/react/24/outline';
 import {
   Activity,
@@ -48,6 +49,7 @@ import { CriticalMetricsTable } from '@/components/CriticalMetricsTable';
 import { DetailedFunnelOverview } from '@/components/DetailedFunnelOverview';
 import { VideoAttributionAnalytics } from '@/components/VideoAttributionAnalytics';
 import { TrendsComparison } from '@/components/TrendsComparison';
+import { CountryBreakdown } from '@/components/CountryBreakdown';
 import { DashboardData } from '@/types';
 
 interface ParticleType {
@@ -170,6 +172,15 @@ export default function Dashboard() {
         { label: "Accuracy Rate", value: "94.2%", change: "+2.1%" },
         { label: "Recommendations", value: "23", change: "+8" },
         { label: "Automation Score", value: "87%", change: "+12%" }
+      ]
+    },
+    Geography: {
+      title: "Geographic Analytics",
+      metrics: [
+        { label: "Active Markets", value: "8", change: "+2" },
+        { label: "Top Market", value: "US", change: "42.3%" },
+        { label: "Best CVR Market", value: "CA", change: "28.5%" },
+        { label: "Fastest Growing", value: "AU", change: "+67%" }
       ]
     },
     Settings: {
@@ -567,12 +578,13 @@ export default function Dashboard() {
           <div className="mt-8">
             <Tabs defaultValue="critical" className="w-full">
               <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-4">
-                <TabsList className={`p-1 backdrop-blur-xl transition-all duration-300 hover:backdrop-blur-2xl w-full lg:w-auto ${
-                  theme === 'dark' ? 'bg-slate-800/30 hover:bg-slate-800/40' : 'bg-white/50 hover:bg-white/70 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.6),0_4px_16px_rgba(0,0,0,0.06)]'
-                }`}>
+                <div className="w-full overflow-x-auto scrollbar-hide">
+                  <TabsList className={`flex p-1 backdrop-blur-xl transition-all duration-300 hover:backdrop-blur-2xl min-w-max ${
+                    theme === 'dark' ? 'bg-slate-800/30 hover:bg-slate-800/40' : 'bg-white/50 hover:bg-white/70 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.6),0_4px_16px_rgba(0,0,0,0.06)]'
+                  }`}>
                   <TabsTrigger
                     value="critical"
-                    className={`text-xs sm:text-sm px-2 sm:px-3 py-2 ${
+                    className={`text-xs sm:text-sm px-2 sm:px-3 py-2 whitespace-nowrap ${
                       theme === 'dark' 
                         ? 'data-[state=active]:bg-slate-700 data-[state=active]:text-cyan-400' 
                         : 'data-[state=active]:bg-white data-[state=active]:text-cyan-600 data-[state=active]:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.9),0_2px_8px_rgba(0,0,0,0.08)]'
@@ -582,7 +594,7 @@ export default function Dashboard() {
                   </TabsTrigger>
                   <TabsTrigger
                     value="funnel"
-                    className={`text-xs sm:text-sm px-2 sm:px-3 py-2 ${
+                    className={`text-xs sm:text-sm px-2 sm:px-3 py-2 whitespace-nowrap ${
                       theme === 'dark' 
                         ? 'data-[state=active]:bg-slate-700 data-[state=active]:text-cyan-400' 
                         : 'data-[state=active]:bg-white data-[state=active]:text-cyan-600 data-[state=active]:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.9),0_2px_8px_rgba(0,0,0,0.08)]'
@@ -672,7 +684,7 @@ export default function Dashboard() {
                   </TabsTrigger>
                   <TabsTrigger
                     value="trends"
-                    className={`text-xs sm:text-sm px-2 sm:px-3 py-2 ${
+                    className={`text-xs sm:text-sm px-2 sm:px-3 py-2 whitespace-nowrap ${
                       theme === 'dark' 
                         ? 'data-[state=active]:bg-slate-700 data-[state=active]:text-cyan-400' 
                         : 'data-[state=active]:bg-white data-[state=active]:text-cyan-600'
@@ -680,7 +692,18 @@ export default function Dashboard() {
                   >
                     <span className="hidden sm:inline">Trends & </span>Analysis
                   </TabsTrigger>
-                </TabsList>
+                  <TabsTrigger
+                    value="geography"
+                    className={`text-xs sm:text-sm px-2 sm:px-3 py-2 whitespace-nowrap ${
+                      theme === 'dark' 
+                        ? 'data-[state=active]:bg-slate-700 data-[state=active]:text-cyan-400' 
+                        : 'data-[state=active]:bg-white data-[state=active]:text-cyan-600'
+                    }`}
+                  >
+                    <span className="hidden sm:inline">Country </span>Breakdown
+                  </TabsTrigger>
+                  </TabsList>
+                </div>
 
                 <div className={`flex items-center justify-center lg:justify-start space-x-3 text-xs ${
                   theme === 'dark' ? 'text-slate-400' : 'text-slate-600'
@@ -843,6 +866,20 @@ export default function Dashboard() {
                    {dashboardData && <TrendsComparison 
                      monthlyMetrics={dashboardData.monthlyMetrics}
                      videos={dashboardData.videos}
+                     theme={theme}
+                   />}
+                 </div>
+               </TabsContent>
+
+               <TabsContent value="geography" className="mt-0">
+                 <div className={`w-full relative rounded-lg backdrop-blur-xl transition-all duration-300 hover:backdrop-blur-2xl hover:shadow-xl ${
+                   theme === 'dark' 
+                     ? 'bg-slate-800/20 border border-slate-700/30 hover:bg-slate-800/30 hover:border-slate-600/40' 
+                     : 'bg-white/50 border border-white/40 hover:bg-white/70 hover:border-white/60 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.6),0_8px_32px_rgba(0,0,0,0.08)] hover:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.8),0_16px_64px_rgba(0,0,0,0.12)]'
+                 }`}>
+                   {dashboardData && <CountryBreakdown 
+                     sales={dashboardData.sales}
+                     calls={dashboardData.calls}
                      theme={theme}
                    />}
                  </div>
