@@ -1,0 +1,315 @@
+name: 🧪 Continuous Integration
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '18'
+  FORCE_COLOR: 1
+
+jobs:
+  # 🔍 Code Quality & Security
+  code-quality:
+    name: 🔍 Code Quality & Security
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'yarn'
+
+      - name: 📦 Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: 🧹 ESLint
+        run: yarn lint
+
+      - name: 🎨 Prettier Check
+        run: yarn prettier --check .
+
+      - name: 🔒 Security Audit
+        run: yarn audit --audit-level moderate
+
+      - name: 📊 TypeScript Check
+        run: yarn tsc --noEmit
+
+      - name: 🔍 CodeQL Analysis
+        uses: github/codeql-action/init@v3
+        with:
+          languages: typescript, javascript
+
+      - name: 🔍 Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+
+  # 🧪 Unit & Integration Tests
+  test:
+    name: 🧪 Unit & Integration Tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: ['18', '20']
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'yarn'
+
+      - name: 📦 Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: 🧪 Run Jest tests
+        run: yarn test --coverage --passWithNoTests
+        env:
+          NODE_ENV: test
+
+      - name: 📊 Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          file: ./coverage/lcov.info
+          flags: unittests
+          name: codecov-umbrella
+
+  # 🎭 Visual Regression Testing
+  visual-tests:
+    name: 🎭 Visual Regression Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'yarn'
+
+      - name: 📦 Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: 🎭 Install Playwright browsers
+        run: npx playwright install --with-deps
+
+      - name: 🏗️ Build application
+        run: yarn build
+        env:
+          NODE_ENV: production
+
+      - name: 🎭 Run Playwright tests
+        run: yarn playwright test
+        env:
+          NODE_ENV: test
+
+      - name: 📸 Upload test results
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report-${{ github.run_id }}
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+
+  # 🏗️ Build Verification
+  build:
+    name: 🏗️ Build Verification
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        environment: [development, production]
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'yarn'
+
+      - name: 📦 Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: 🏗️ Build for ${{ matrix.environment }}
+        run: yarn build
+        env:
+          NODE_ENV: ${{ matrix.environment }}
+          NEXT_TELEMETRY_DISABLED: 1
+
+      - name: 📊 Analyze bundle size
+        run: |
+          du -sh .next
+          du -sh .next/static
+        if: matrix.environment == 'production'
+
+      - name: 📦 Upload build artifacts
+        uses: actions/upload-artifact@v4
+        if: matrix.environment == 'production'
+        with:
+          name: build-artifacts-${{ github.run_id }}
+          path: |
+            .next/
+            !.next/cache
+          retention-days: 1
+
+  # 🐳 Docker Build Test
+  docker-build:
+    name: 🐳 Docker Build Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🐳 Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 🏗️ Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: false
+          tags: dashboard:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: 🔍 Test Docker image
+        run: |
+          docker run --rm -d --name test-container -p 3000:3000 dashboard:test
+          sleep 10
+          curl -f http://localhost:3000 || exit 1
+          docker stop test-container
+
+  # 🔒 Security Scanning
+  security:
+    name: 🔒 Security Scanning
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'yarn'
+
+      - name: 📦 Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: 🔒 Run Snyk to check for vulnerabilities
+        uses: snyk/actions/node@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --severity-threshold=high
+
+      - name: 🔒 Upload result to GitHub Code Scanning
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: snyk.sarif
+
+  # 📈 Performance Testing
+  performance:
+    name: 📈 Performance Testing
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'yarn'
+
+      - name: 📦 Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: 🏗️ Build application
+        run: yarn build
+        env:
+          NODE_ENV: production
+
+      - name: 🚀 Start application
+        run: yarn start &
+        env:
+          NODE_ENV: production
+
+      - name: ⏳ Wait for server
+        run: npx wait-on http://localhost:3000 --timeout 60000
+
+      - name: 📈 Run Lighthouse CI
+        run: |
+          npm install -g @lhci/cli@0.12.x
+          lhci autorun
+        env:
+          LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
+
+  # ✅ CI Status Check
+  ci-status:
+    name: ✅ CI Status Check
+    runs-on: ubuntu-latest
+    needs: [code-quality, test, visual-tests, build, docker-build, security]
+    if: always()
+    steps:
+      - name: 📊 Check all jobs status
+        run: |
+          if [[ "${{ needs.code-quality.result }}" == "success" && 
+                "${{ needs.test.result }}" == "success" && 
+                "${{ needs.visual-tests.result }}" == "success" && 
+                "${{ needs.build.result }}" == "success" && 
+                "${{ needs.docker-build.result }}" == "success" && 
+                "${{ needs.security.result }}" == "success" ]]; then
+            echo "✅ All CI checks passed!"
+            exit 0
+          else
+            echo "❌ Some CI checks failed!"
+            exit 1
+          fi
+
+      - name: 📝 Comment PR status
+        uses: actions/github-script@v7
+        if: github.event_name == 'pull_request'
+        with:
+          script: |
+            const status = '${{ needs.code-quality.result }}' === 'success' && 
+                          '${{ needs.test.result }}' === 'success' && 
+                          '${{ needs.visual-tests.result }}' === 'success' && 
+                          '${{ needs.build.result }}' === 'success' && 
+                          '${{ needs.docker-build.result }}' === 'success' && 
+                          '${{ needs.security.result }}' === 'success' ? '✅' : '❌';
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `${status} **CI Pipeline Status**\n\n` +
+                    `- Code Quality: ${{ needs.code-quality.result }}\n` +
+                    `- Tests: ${{ needs.test.result }}\n` +
+                    `- Visual Tests: ${{ needs.visual-tests.result }}\n` +
+                    `- Build: ${{ needs.build.result }}\n` +
+                    `- Docker: ${{ needs.docker-build.result }}\n` +
+                    `- Security: ${{ needs.security.result }}`
+            });

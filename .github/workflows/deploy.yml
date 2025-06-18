@@ -1,0 +1,311 @@
+name: 🚀 Deployment Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+      version:
+        description: 'Version to deploy (leave empty for latest)'
+        required: false
+        type: string
+
+concurrency:
+  group: deploy-${{ github.ref }}-${{ inputs.environment || 'auto' }}
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: '18'
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # 🏗️ Build and Test
+  build:
+    name: 🏗️ Build & Test
+    runs-on: ubuntu-latest
+    outputs:
+      image-tag: ${{ steps.meta.outputs.tags }}
+      image-digest: ${{ steps.build.outputs.digest }}
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'yarn'
+
+      - name: 📦 Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: 🧪 Run tests
+        run: yarn test --coverage --passWithNoTests
+        env:
+          NODE_ENV: test
+
+      - name: 🎭 Run Playwright tests
+        run: |
+          npx playwright install --with-deps
+          yarn playwright test
+        env:
+          NODE_ENV: test
+
+      - name: 🏗️ Build application
+        run: yarn build
+        env:
+          NODE_ENV: production
+          NEXT_TELEMETRY_DISABLED: 1
+
+      - name: 🏷️ Generate version
+        id: version
+        run: |
+          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+            VERSION="${{ github.ref_name }}"
+          elif [[ "${{ github.ref_name }}" == "main" ]]; then
+            VERSION="v$(date +%Y.%m.%d)-${GITHUB_SHA:0:7}"
+          else
+            VERSION="dev-${GITHUB_SHA:0:7}"
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Generated version: $VERSION"
+
+      - name: 🐳 Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 🔐 Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 🏷️ Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=${{ steps.version.outputs.version }}
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: 🏗️ Build and push Docker image
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64,linux/arm64
+
+  # 🚀 Deploy to Staging
+  deploy-staging:
+    name: 🚀 Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/develop' || (github.event_name == 'workflow_dispatch' && inputs.environment == 'staging')
+    environment:
+      name: staging
+      url: https://dashboard-staging.vercel.app
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🚀 Deploy to Vercel (Staging)
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          scope: ${{ secrets.VERCEL_ORG_ID }}
+          alias-domains: dashboard-staging.vercel.app
+
+      - name: 🔍 Health Check
+        run: |
+          echo "Waiting for deployment to be ready..."
+          sleep 30
+          curl -f https://dashboard-staging.vercel.app/api/health || exit 1
+          echo "✅ Staging deployment health check passed!"
+
+      - name: 📊 Run Lighthouse CI on Staging
+        run: |
+          npm install -g @lhci/cli@0.12.x
+          lhci autorun --config=.lighthouserc-staging.json
+        env:
+          LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
+
+  # 🌟 Deploy to Production
+  deploy-production:
+    name: 🌟 Deploy to Production
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main' || github.ref_type == 'tag' || (github.event_name == 'workflow_dispatch' && inputs.environment == 'production')
+    environment:
+      name: production
+      url: https://dashboard-erkin98.vercel.app
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🚀 Deploy to Vercel (Production)
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          vercel-args: '--prod'
+          scope: ${{ secrets.VERCEL_ORG_ID }}
+
+      - name: 🔍 Production Health Check
+        run: |
+          echo "Waiting for production deployment to be ready..."
+          sleep 45
+          curl -f https://dashboard-erkin98.vercel.app/api/health || exit 1
+          echo "✅ Production deployment health check passed!"
+
+      - name: 📊 Run Lighthouse CI on Production
+        run: |
+          npm install -g @lhci/cli@0.12.x
+          lhci autorun --config=.lighthouserc-production.json
+        env:
+          LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
+
+      - name: 🐳 Deploy to Container Registry
+        if: github.ref_type == 'tag'
+        run: |
+          echo "✅ Docker image pushed: ${{ needs.build.outputs.image-tag }}"
+          echo "📦 Version: ${{ needs.build.outputs.version }}"
+
+  # 📧 Notifications
+  notify:
+    name: 📧 Send Notifications
+    runs-on: ubuntu-latest
+    needs: [build, deploy-staging, deploy-production]
+    if: always()
+    steps:
+      - name: 📧 Slack Notification
+        uses: 8398a7/action-slack@v3
+        if: env.SLACK_WEBHOOK_URL != null
+        with:
+          status: ${{ job.status }}
+          channel: '#deployments'
+          username: 'GitHub Actions'
+          icon_emoji: ':rocket:'
+          title: 'Dashboard Deployment'
+          text: |
+            🚀 **Deployment Summary**
+            
+            **Environment**: ${{ github.ref == 'refs/heads/main' && 'Production' || 'Staging' }}
+            **Version**: ${{ needs.build.outputs.version }}
+            **Status**: ${{ job.status }}
+            **Branch**: ${{ github.ref_name }}
+            **Commit**: ${{ github.sha }}
+            
+            **Results**:
+            - Build: ${{ needs.build.result }}
+            - Staging: ${{ needs.deploy-staging.result || 'Skipped' }}
+            - Production: ${{ needs.deploy-production.result || 'Skipped' }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: 📧 Email Notification
+        uses: dawidd6/action-send-mail@v3
+        if: failure() && env.MAIL_SERVER != null
+        with:
+          server_address: ${{ secrets.MAIL_SERVER }}
+          server_port: 587
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: '🚨 Dashboard Deployment Failed'
+          body: |
+            Deployment failed for Business Intelligence Dashboard
+            
+            Environment: ${{ github.ref == 'refs/heads/main' && 'Production' || 'Staging' }}
+            Branch: ${{ github.ref_name }}
+            Commit: ${{ github.sha }}
+            
+            Please check the workflow logs for details.
+          to: ${{ secrets.ALERT_EMAIL }}
+          from: 'noreply@dashboard.com'
+        env:
+          MAIL_SERVER: ${{ secrets.MAIL_SERVER }}
+
+  # 🔄 Rollback Capability
+  rollback:
+    name: 🔄 Rollback
+    runs-on: ubuntu-latest
+    if: failure() && github.ref == 'refs/heads/main'
+    needs: [deploy-production]
+    environment:
+      name: production-rollback
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🔄 Trigger Rollback
+        run: |
+          echo "🔄 Production deployment failed. Manual intervention required."
+          echo "Consider rolling back to the previous stable version."
+          echo "Previous deployments can be found in Vercel dashboard."
+
+      - name: 📧 Alert Operations Team
+        uses: 8398a7/action-slack@v3
+        if: env.SLACK_WEBHOOK_URL != null
+        with:
+          status: 'custom'
+          custom_payload: |
+            {
+              "channel": "#alerts",
+              "username": "Production Alert",
+              "icon_emoji": ":warning:",
+              "attachments": [{
+                "color": "danger",
+                "title": "🚨 Production Deployment Failed - Manual Rollback Required",
+                "fields": [
+                  {
+                    "title": "Branch",
+                    "value": "${{ github.ref_name }}",
+                    "short": true
+                  },
+                  {
+                    "title": "Commit",
+                    "value": "${{ github.sha }}",
+                    "short": true
+                  },
+                  {
+                    "title": "Action Required",
+                    "value": "Manual rollback to previous stable version",
+                    "short": false
+                  }
+                ]
+              }]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }} 

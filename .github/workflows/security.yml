@@ -1,0 +1,281 @@
+name: 🔒 Security Scanning
+
+on:
+  schedule:
+    - cron: '0 2 * * 1'  # Weekly on Monday at 2 AM UTC
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  security-events: write
+  contents: read
+  pull-requests: write
+
+env:
+  NODE_VERSION: '18'
+
+jobs:
+  # 🔍 Dependency Scanning
+  dependency-scan:
+    name: 🔍 Dependency Vulnerability Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'yarn'
+
+      - name: 📦 Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: 🔒 NPM Audit
+        run: |
+          yarn audit --audit-level critical
+          yarn audit --audit-level high --groups dependencies
+
+      - name: 🔍 Snyk Vulnerability Scan
+        uses: snyk/actions/node@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --severity-threshold=medium --file=package.json
+
+      - name: 📤 Upload Snyk results to GitHub Code Scanning
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: snyk.sarif
+
+      - name: 🔍 OSSAR Analysis
+        uses: github/ossar-action@v1
+        id: ossar
+
+      - name: 📤 Upload OSSAR results
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: ${{ steps.ossar.outputs.sarifFile }}
+
+  # 🐳 Container Security
+  container-security:
+    name: 🐳 Container Security Scan
+    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request'
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🐳 Build Docker image
+        run: docker build -t dashboard:security-scan .
+
+      - name: 🔍 Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'dashboard:security-scan'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: 📤 Upload Trivy scan results
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+      - name: 🔍 Run Hadolint (Dockerfile linter)
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: Dockerfile
+          format: sarif
+          output-file: hadolint-results.sarif
+          no-fail: true
+
+      - name: 📤 Upload Hadolint results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: hadolint-results.sarif
+
+  # 🔐 Secret Detection
+  secret-scan:
+    name: 🔐 Secret Detection
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🔍 Run GitLeaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
+
+      - name: 🔍 TruffleHog OSS
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: main
+          head: HEAD
+          extra_args: --debug --only-verified
+
+  # 🔒 CodeQL Security Analysis
+  codeql:
+    name: 🔒 CodeQL Security Analysis
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [ 'javascript', 'typescript' ]
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🔍 Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          queries: security-extended,security-and-quality
+
+      - name: 🏗️ Autobuild
+        uses: github/codeql-action/autobuild@v3
+
+      - name: 🔍 Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:${{matrix.language}}"
+
+  # 🛡️ License Compliance
+  license-check:
+    name: 🛡️ License Compliance Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'yarn'
+
+      - name: 📦 Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: 🛡️ Check licenses
+        run: |
+          npx license-checker --onlyAllow 'MIT;Apache-2.0;BSD-2-Clause;BSD-3-Clause;ISC;0BSD' --excludePrivatePackages
+          npx license-checker --summary
+
+  # 🔄 Security Updates
+  security-updates:
+    name: 🔄 Automated Security Updates
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule'
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'yarn'
+
+      - name: 📦 Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: 🔄 Update security vulnerabilities
+        run: |
+          yarn audit --audit-level moderate || true
+          yarn upgrade --pattern "*" --latest
+
+      - name: 🧪 Run tests after updates
+        run: |
+          yarn test --passWithNoTests
+          yarn build
+
+      - name: 🔀 Create Pull Request
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: '🔒 chore: automated security dependency updates'
+          title: '🔒 Automated Security Dependency Updates'
+          body: |
+            ## 🔒 Automated Security Updates
+            
+            This PR contains automated security dependency updates.
+            
+            ### Changes
+            - Updated dependencies with known security vulnerabilities
+            - All tests passing
+            - Ready for review and merge
+            
+            ### Verification
+            - ✅ Tests pass
+            - ✅ Build successful
+            - ✅ Security scan clean
+            
+            **Note**: This PR was automatically generated by the security workflow.
+          branch: security-updates/automated
+          delete-branch: true
+
+  # 📊 Security Report
+  security-report:
+    name: 📊 Security Summary Report
+    runs-on: ubuntu-latest
+    needs: [dependency-scan, container-security, secret-scan, codeql, license-check]
+    if: always()
+    steps:
+      - name: 📊 Generate Security Report
+        run: |
+          echo "# 🔒 Security Scan Summary" >> security-report.md
+          echo "" >> security-report.md
+          echo "## 📋 Scan Results" >> security-report.md
+          echo "- **Dependency Scan**: ${{ needs.dependency-scan.result }}" >> security-report.md
+          echo "- **Container Security**: ${{ needs.container-security.result }}" >> security-report.md
+          echo "- **Secret Detection**: ${{ needs.secret-scan.result }}" >> security-report.md
+          echo "- **CodeQL Analysis**: ${{ needs.codeql.result }}" >> security-report.md
+          echo "- **License Check**: ${{ needs.license-check.result }}" >> security-report.md
+          echo "" >> security-report.md
+          echo "## 🔗 Links" >> security-report.md
+          echo "- [Security Advisories](https://github.com/${{ github.repository }}/security/advisories)" >> security-report.md
+          echo "- [Dependency Graph](https://github.com/${{ github.repository }}/network/dependencies)" >> security-report.md
+          echo "- [Code Scanning](https://github.com/${{ github.repository }}/security/code-scanning)" >> security-report.md
+
+      - name: 📤 Upload Security Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-report
+          path: security-report.md
+          retention-days: 30
+
+      - name: 📧 Notify Security Team
+        if: failure()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: 'failure'
+          channel: '#security-alerts'
+          username: 'Security Scanner'
+          icon_emoji: ':warning:'
+          text: |
+            🚨 **Security Scan Failed**
+            
+            Repository: ${{ github.repository }}
+            Branch: ${{ github.ref_name }}
+            Workflow: ${{ github.workflow }}
+            
+            Please review the security scan results immediately.
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }} 

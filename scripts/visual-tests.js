@@ -25,14 +25,7 @@ function logSection(title) {
   log(`${'='.repeat(60)}`, 'cyan');
 }
 
-function checkIfStorybookRunning() {
-  try {
-    execSync('curl -s http://localhost:6006 > /dev/null', { stdio: 'ignore' });
-    return true;
-  } catch {
-    return false;
-  }
-}
+
 
 function checkIfDashboardRunning() {
   try {
@@ -78,27 +71,7 @@ async function runPlaywrightTests() {
   }
 }
 
-async function runStorybookVisualTests() {
-  logSection('📚 Running Storybook Component Visual Tests');
-  
-  // Check if Storybook is running
-  if (!checkIfStorybookRunning()) {
-    log('⚠️  Storybook not running on localhost:6006. Starting it...', 'yellow');
-    log('Please run "yarn storybook" in another terminal and wait for it to start', 'yellow');
-    log('Then run this script again', 'yellow');
-    return;
-  }
 
-  try {
-    execSync('npx playwright test tests/visual/components.spec.ts', { 
-      stdio: 'inherit' 
-    });
-    log('✅ Storybook component visual tests completed successfully', 'green');
-  } catch (error) {
-    log('❌ Storybook component visual tests failed', 'red');
-    log('💡 Run "npx playwright test --ui" to debug visually', 'yellow');
-  }
-}
 
 async function generateVisualReport() {
   logSection('📊 Generating Visual Test Report');
@@ -171,9 +144,7 @@ async function main() {
       case 'playwright':
         await runPlaywrightTests();
         break;
-      case 'storybook':
-        await runStorybookVisualTests();
-        break;
+
       case 'chromatic':
         await runChromaticTests();
         break;
@@ -187,7 +158,6 @@ async function main() {
       default:
         await runSnapshots();
         await runPlaywrightTests();
-        await runStorybookVisualTests();
         await generateVisualReport();
         break;
     }

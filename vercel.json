@@ -4,10 +4,11 @@
   "framework": "nextjs",
   "installCommand": "yarn install",
   "devCommand": "yarn dev",
-  "regions": ["iad1"],
+  "regions": ["iad1", "sfo1", "lhr1"],
   "functions": {
     "src/app/api/**/*.ts": {
-      "runtime": "nodejs18.x"
+      "runtime": "nodejs18.x",
+      "maxDuration": 30
     }
   },
   "headers": [
@@ -25,8 +26,44 @@
         {
           "key": "X-XSS-Protection",
           "value": "1; mode=block"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "camera=(), microphone=(), geolocation=()"
         }
       ]
+    },
+    {
+      "source": "/(.*\\.(css|js|svg|png|jpg|jpeg|gif|webp|woff|woff2))",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/home",
+      "destination": "/",
+      "permanent": true
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/api/health",
+      "destination": "/api/dashboard"
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/dashboard",
+      "schedule": "0 */6 * * *"
     }
   ]
 } 

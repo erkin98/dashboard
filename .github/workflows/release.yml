@@ -1,0 +1,400 @@
+name: 🚀 Release Management
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: 'Release type'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+          - prerelease
+      prerelease:
+        description: 'Is this a prerelease?'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+env:
+  NODE_VERSION: '18'
+
+jobs:
+  # 📊 Version Management
+  version:
+    name: 📊 Version Management
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    outputs:
+      new_version: ${{ steps.version.outputs.new_version }}
+      changelog: ${{ steps.changelog.outputs.changelog }}
+      should_release: ${{ steps.check.outputs.should_release }}
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'yarn'
+
+      - name: 📦 Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: 🔍 Check for changes requiring release
+        id: check
+        run: |
+          # Check if there are any changes since last tag
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          if [ -z "$LAST_TAG" ]; then
+            echo "should_release=true" >> $GITHUB_OUTPUT
+            echo "No previous tags found, will create initial release"
+          else
+            CHANGES=$(git log $LAST_TAG..HEAD --oneline --pretty=format:"%s" | grep -E "(feat|fix|BREAKING CHANGE)" || true)
+            if [ -n "$CHANGES" ]; then
+              echo "should_release=true" >> $GITHUB_OUTPUT
+              echo "Found changes requiring release since $LAST_TAG"
+            else
+              echo "should_release=false" >> $GITHUB_OUTPUT
+              echo "No significant changes found since $LAST_TAG"
+            fi
+          fi
+
+      - name: 📋 Generate changelog
+        id: changelog
+        if: steps.check.outputs.should_release == 'true'
+        run: |
+          # Install conventional-changelog-cli if not present
+          npm install -g conventional-changelog-cli
+          
+          # Generate changelog
+          conventional-changelog -p angular -i CHANGELOG.md -s
+          
+          # Extract latest changes for release notes
+          CHANGELOG_CONTENT=$(conventional-changelog -p angular -u)
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG_CONTENT" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: 🏷️ Calculate new version
+        id: version
+        if: steps.check.outputs.should_release == 'true'
+        run: |
+          # Get current version from package.json
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          echo "Current version: $CURRENT_VERSION"
+          
+          # Determine version bump type
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            RELEASE_TYPE="${{ inputs.release_type }}"
+          else
+            # Auto-detect from commit messages
+            COMMITS=$(git log $(git describe --tags --abbrev=0)..HEAD --oneline --pretty=format:"%s" 2>/dev/null || git log --oneline --pretty=format:"%s")
+            
+            if echo "$COMMITS" | grep -q "BREAKING CHANGE"; then
+              RELEASE_TYPE="major"
+            elif echo "$COMMITS" | grep -q "feat"; then
+              RELEASE_TYPE="minor"
+            elif echo "$COMMITS" | grep -q "fix"; then
+              RELEASE_TYPE="patch"
+            else
+              RELEASE_TYPE="patch"
+            fi
+          fi
+          
+          echo "Release type: $RELEASE_TYPE"
+          
+          # Calculate new version
+          npm install -g semver
+          NEW_VERSION=$(semver -i $RELEASE_TYPE $CURRENT_VERSION)
+          
+          if [ "${{ inputs.prerelease }}" == "true" ]; then
+            NEW_VERSION="$NEW_VERSION-rc.1"
+          fi
+          
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "New version: $NEW_VERSION"
+
+      - name: 📝 Update package.json
+        if: steps.check.outputs.should_release == 'true'
+        run: |
+          # Update version in package.json
+          npm version ${{ steps.version.outputs.new_version }} --no-git-tag-version
+          
+          # Commit changes
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add package.json CHANGELOG.md
+          git commit -m "chore: release v${{ steps.version.outputs.new_version }}" || exit 0
+
+      - name: 🏷️ Create and push tag
+        if: steps.check.outputs.should_release == 'true'
+        run: |
+          git tag -a "v${{ steps.version.outputs.new_version }}" -m "Release v${{ steps.version.outputs.new_version }}"
+          git push origin main
+          git push origin "v${{ steps.version.outputs.new_version }}"
+
+  # 🏗️ Build Release Assets
+  build-assets:
+    name: 🏗️ Build Release Assets
+    runs-on: ubuntu-latest
+    needs: version
+    if: needs.version.outputs.should_release == 'true'
+    strategy:
+      matrix:
+        platform: [linux, windows, macos]
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: v${{ needs.version.outputs.new_version }}
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'yarn'
+
+      - name: 📦 Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: 🏗️ Build application
+        run: |
+          yarn build
+          tar -czf dashboard-${{ matrix.platform }}-v${{ needs.version.outputs.new_version }}.tar.gz .next public package.json
+
+      - name: 📤 Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dashboard-${{ matrix.platform }}-v${{ needs.version.outputs.new_version }}
+          path: dashboard-${{ matrix.platform }}-v${{ needs.version.outputs.new_version }}.tar.gz
+          retention-days: 30
+
+  # 🐳 Docker Release
+  docker-release:
+    name: 🐳 Docker Release
+    runs-on: ubuntu-latest
+    needs: version
+    if: needs.version.outputs.should_release == 'true'
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: v${{ needs.version.outputs.new_version }}
+
+      - name: 🐳 Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 🔐 Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 🔐 Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: 🏷️ Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ghcr.io/${{ github.repository }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/dashboard
+          tags: |
+            type=semver,pattern={{version}},value=v${{ needs.version.outputs.new_version }}
+            type=semver,pattern={{major}}.{{minor}},value=v${{ needs.version.outputs.new_version }}
+            type=semver,pattern={{major}},value=v${{ needs.version.outputs.new_version }}
+            type=raw,value=latest
+
+      - name: 🏗️ Build and push Docker images
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          platforms: linux/amd64,linux/arm64
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # 📋 Create GitHub Release
+  github-release:
+    name: 📋 Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: [version, build-assets, docker-release]
+    if: needs.version.outputs.should_release == 'true'
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: v${{ needs.version.outputs.new_version }}
+
+      - name: 📥 Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+
+      - name: 📋 Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ needs.version.outputs.new_version }}
+          name: Release v${{ needs.version.outputs.new_version }}
+          body: |
+            ## 🚀 Release v${{ needs.version.outputs.new_version }}
+            
+            ### 📋 Changelog
+            ${{ needs.version.outputs.changelog }}
+            
+            ### 🐳 Docker Images
+            ```bash
+            # GitHub Container Registry
+            docker pull ghcr.io/${{ github.repository }}:v${{ needs.version.outputs.new_version }}
+            
+            # Docker Hub
+            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/dashboard:v${{ needs.version.outputs.new_version }}
+            ```
+            
+            ### 🚀 Quick Deploy
+            ```bash
+            # Using Docker Compose
+            curl -O https://raw.githubusercontent.com/${{ github.repository }}/v${{ needs.version.outputs.new_version }}/docker-compose.yml
+            docker-compose up -d
+            
+            # Using Vercel
+            vercel --prod
+            ```
+            
+            ### 🔗 Links
+            - [Documentation](https://github.com/${{ github.repository }}/blob/v${{ needs.version.outputs.new_version }}/README.md)
+            - [Deployment Guide](https://github.com/${{ github.repository }}/blob/v${{ needs.version.outputs.new_version }}/DEPLOYMENT.md)
+            - [Demo Video Script](https://github.com/${{ github.repository }}/blob/v${{ needs.version.outputs.new_version }}/DEMO_SCRIPT.md)
+            
+            ---
+            **Full Changelog**: https://github.com/${{ github.repository }}/compare/v${{ needs.version.outputs.previous_version }}...v${{ needs.version.outputs.new_version }}
+          files: release-assets/**/*
+          draft: false
+          prerelease: ${{ inputs.prerelease || false }}
+          generate_release_notes: true
+
+  # 📧 Post-Release Notifications
+  notifications:
+    name: 📧 Post-Release Notifications
+    runs-on: ubuntu-latest
+    needs: [version, github-release]
+    if: needs.version.outputs.should_release == 'true'
+    steps:
+      - name: 📧 Slack Notification
+        uses: 8398a7/action-slack@v3
+        with:
+          status: 'success'
+          channel: '#releases'
+          username: 'Release Bot'
+          icon_emoji: ':rocket:'
+          text: |
+            🎉 **New Release Published!**
+            
+            **Version**: v${{ needs.version.outputs.new_version }}
+            **Repository**: ${{ github.repository }}
+            **Release Notes**: https://github.com/${{ github.repository }}/releases/tag/v${{ needs.version.outputs.new_version }}
+            
+            ### 🐳 Docker Images Available
+            - `ghcr.io/${{ github.repository }}:v${{ needs.version.outputs.new_version }}`
+            - `${{ secrets.DOCKERHUB_USERNAME }}/dashboard:v${{ needs.version.outputs.new_version }}`
+            
+            ### 🚀 Deploy Commands
+            ```
+            # Pull latest image
+            docker pull ghcr.io/${{ github.repository }}:latest
+            
+            # Deploy with Docker Compose
+            docker-compose up -d
+            ```
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: 📧 Email Release Notification
+        uses: dawidd6/action-send-mail@v3
+        if: env.MAIL_SERVER != null
+        with:
+          server_address: ${{ secrets.MAIL_SERVER }}
+          server_port: 587
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: '🚀 Dashboard v${{ needs.version.outputs.new_version }} Released'
+          body: |
+            A new version of the Business Intelligence Dashboard has been released!
+            
+            Version: v${{ needs.version.outputs.new_version }}
+            Release Notes: https://github.com/${{ github.repository }}/releases/tag/v${{ needs.version.outputs.new_version }}
+            
+            The new version includes:
+            ${{ needs.version.outputs.changelog }}
+            
+            Update your deployment to get the latest features and improvements.
+          to: ${{ secrets.RELEASE_NOTIFICATION_EMAIL }}
+          from: 'releases@dashboard.com'
+        env:
+          MAIL_SERVER: ${{ secrets.MAIL_SERVER }}
+
+  # 🔄 Update Documentation
+  update-docs:
+    name: 🔄 Update Documentation
+    runs-on: ubuntu-latest
+    needs: [version, github-release]
+    if: needs.version.outputs.should_release == 'true'
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 📝 Update documentation versions
+        run: |
+          # Update version references in README
+          sed -i 's/dashboard:v[0-9]*\.[0-9]*\.[0-9]*/dashboard:v${{ needs.version.outputs.new_version }}/g' README.md
+          sed -i 's/releases\/tag\/v[0-9]*\.[0-9]*\.[0-9]*/releases\/tag\/v${{ needs.version.outputs.new_version }}/g' README.md
+          
+          # Update deployment guide
+          sed -i 's/dashboard:v[0-9]*\.[0-9]*\.[0-9]*/dashboard:v${{ needs.version.outputs.new_version }}/g' DEPLOYMENT.md
+
+      - name: 🔀 Create documentation update PR
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: 'docs: update version references to v${{ needs.version.outputs.new_version }}'
+          title: '📝 Update documentation for v${{ needs.version.outputs.new_version }}'
+          body: |
+            ## 📝 Documentation Update
+            
+            Updates version references in documentation following the release of v${{ needs.version.outputs.new_version }}.
+            
+            ### Changes
+            - Updated Docker image references
+            - Updated release links
+            - Updated deployment examples
+            
+            This PR was automatically generated by the release workflow.
+          branch: docs/update-v${{ needs.version.outputs.new_version }}
+          delete-branch: true 

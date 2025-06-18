@@ -1,0 +1,158 @@
+version: '3.8'
+
+services:
+  # Business Intelligence Dashboard Application
+  dashboard:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    container_name: dashboard-app
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - NEXT_TELEMETRY_DISABLED=1
+    env_file:
+      - .env.production
+    networks:
+      - dashboard-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    depends_on:
+      - redis
+    volumes:
+      - dashboard-logs:/app/logs
+
+  # Redis for caching and session management
+  redis:
+    image: redis:7-alpine
+    container_name: dashboard-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redis-data:/data
+    networks:
+      - dashboard-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 30s
+      timeout: 3s
+      retries: 5
+
+  # Nginx reverse proxy
+  nginx:
+    image: nginx:alpine
+    container_name: dashboard-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/ssl/certs:ro
+      - nginx-logs:/var/log/nginx
+    depends_on:
+      - dashboard
+    networks:
+      - dashboard-network
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+
+  # Monitoring with Prometheus (optional)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: dashboard-prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    networks:
+      - dashboard-network
+    profiles:
+      - monitoring
+
+  # Grafana for metrics visualization (optional)
+  grafana:
+    image: grafana/grafana:latest
+    container_name: dashboard-grafana
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    depends_on:
+      - prometheus
+    networks:
+      - dashboard-network
+    profiles:
+      - monitoring
+
+  # Log aggregation with Loki (optional)
+  loki:
+    image: grafana/loki:latest
+    container_name: dashboard-loki
+    restart: unless-stopped
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./monitoring/loki/local-config.yaml:/etc/loki/local-config.yaml:ro
+      - loki-data:/tmp/loki
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - dashboard-network
+    profiles:
+      - monitoring
+
+# Network configuration
+networks:
+  dashboard-network:
+    driver: bridge
+    name: dashboard-network
+
+# Volume configuration
+volumes:
+  dashboard-logs:
+    driver: local
+    name: dashboard-logs
+  redis-data:
+    driver: local
+    name: dashboard-redis-data
+  nginx-logs:
+    driver: local
+    name: dashboard-nginx-logs
+  prometheus-data:
+    driver: local
+    name: dashboard-prometheus-data
+  grafana-data:
+    driver: local
+    name: dashboard-grafana-data
+  loki-data:
+    driver: local
+    name: dashboard-loki-data
+
+# Production deployment commands:
+# docker-compose up -d                    # Start core services
+# docker-compose --profile monitoring up  # Start with monitoring
+# docker-compose logs -f dashboard        # View application logs
+# docker-compose exec dashboard sh        # Access application container 

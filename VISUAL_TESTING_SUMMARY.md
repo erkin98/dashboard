@@ -16,12 +16,9 @@
    - ✅ Dark/light theme variations
    - ✅ Loading and error state testing
 
-3. **Storybook Component Testing**
-   - ✅ Isolated component visual testing
-   - ✅ Component variant verification
-   - ✅ Hover and interaction state testing
 
-4. **Chromatic Integration**
+
+3. **Chromatic Integration**
    - ✅ Automated visual review workflow
    - ✅ Team collaboration features
    - ✅ CI/CD ready setup
@@ -33,7 +30,7 @@
 | `yarn visual` | Run all visual tests |
 | `yarn visual:snapshots` | Jest snapshot tests |
 | `yarn visual:playwright` | Full page visual tests |
-| `yarn visual:storybook` | Storybook component tests |
+
 | `yarn visual:chromatic` | Chromatic visual tests |
 | `yarn visual:update` | Update all baselines |
 | `yarn visual:report` | View test reports |
@@ -111,10 +108,9 @@
    ```bash
    # Start services
    yarn dev        # Terminal 1
-   yarn storybook  # Terminal 2
    
    # Run tests
-   yarn visual     # Terminal 3
+   yarn visual     # Terminal 2
    ```
 
 2. **Set up Chromatic**:
