@@ -5,16 +5,11 @@ import { YouTubeVideo, CallBooking, Sale } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
 import { 
   PlayIcon,
-  PhoneIcon,
-  CurrencyDollarIcon,
   TrophyIcon,
   ChartBarIcon,
-  CalendarIcon,
-  ArrowUpIcon,
-  ArrowDownIcon
+  CalendarIcon
 } from '@heroicons/react/24/outline';
 
 interface VideoAttributionAnalyticsProps {
@@ -226,7 +221,7 @@ export function VideoAttributionAnalytics({
                     key={sort.key}
                     variant={sortBy === sort.key ? 'default' : 'ghost'}
                     size="sm"
-                    onClick={() => setSortBy(sort.key as any)}
+                    onClick={() => setSortBy(sort.key as 'revenue' | 'views' | 'conversion')}
                     className={`h-8 px-3 text-xs ${
                       sortBy === sort.key
                         ? theme === 'dark'

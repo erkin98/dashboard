@@ -9,6 +9,48 @@ import {
 import { generateMockDashboardData } from '@/data/mockData';
 import { MonthlyMetrics, YouTubeVideo, DashboardData } from '@/types';
 
+// Type definitions for API responses
+interface YouTubeApiData {
+  channelStats: {
+    subscriberCount: number;
+    viewCount: number;
+    videoCount: number;
+  };
+  videoStats: Array<{
+    id: string;
+    title: string;
+    publishedAt: string;
+    views: number;
+  }>;
+}
+
+interface KajabiApiData {
+  products: unknown[];
+  revenue: {
+    monthlyBreakdown?: Array<{
+      month: string;
+      revenue: number;
+    }>;
+  };
+  emailStats: unknown;
+}
+
+interface CalComApiData {
+  bookings: unknown[];
+  stats: {
+    monthlyBreakdown?: Array<{
+      month: string;
+      booked: number;
+      accepted: number;
+    }>;
+  };
+}
+
+interface MonthBookings {
+  booked: number;
+  accepted: number;
+}
+
 export async function GET() {
   try {
     console.log('🔄 Fetching dashboard data...');
@@ -50,7 +92,7 @@ export async function GET() {
   }
 }
 
-async function fetchYouTubeData() {
+async function fetchYouTubeData(): Promise<YouTubeApiData> {
   try {
     // Replace with your actual YouTube channel ID
     const channelId = process.env.YOUTUBE_CHANNEL_ID || 'UC_default_channel';
@@ -67,7 +109,7 @@ async function fetchYouTubeData() {
   }
 }
 
-async function fetchKajabiData() {
+async function fetchKajabiData(): Promise<KajabiApiData> {
   try {
     const [products, revenue, emailStats] = await Promise.all([
       kajabiAPI.getProducts(),
@@ -82,7 +124,7 @@ async function fetchKajabiData() {
   }
 }
 
-async function fetchCalComData() {
+async function fetchCalComData(): Promise<CalComApiData> {
   try {
     const [bookings, stats] = await Promise.all([
       calcomAPI.getBookings('2024-06-01', '2024-11-30'),
@@ -96,12 +138,12 @@ async function fetchCalComData() {
   }
 }
 
-async function buildDashboardData(youtubeData: any, kajabiData: any, calcomData: any): Promise<DashboardData> {
+async function buildDashboardData(youtubeData: YouTubeApiData, kajabiData: KajabiApiData, calcomData: CalComApiData): Promise<DashboardData> {
   // Build monthly metrics from real data
   const monthlyMetrics: MonthlyMetrics[] = buildMonthlyMetrics(youtubeData, kajabiData, calcomData);
   
   // Build video performance data  
-  const videos: YouTubeVideo[] = buildVideoPerformance(youtubeData, calcomData);
+  const videos: YouTubeVideo[] = buildVideoPerformance(youtubeData);
   
   // Get mock data for other components that don't have real API yet
   const mockData = generateMockDashboardData();
@@ -120,17 +162,17 @@ async function buildDashboardData(youtubeData: any, kajabiData: any, calcomData:
   };
 }
 
-function buildMonthlyMetrics(youtubeData: any, kajabiData: any, calcomData: any): MonthlyMetrics[] {
+function buildMonthlyMetrics(youtubeData: YouTubeApiData, kajabiData: KajabiApiData, calcomData: CalComApiData): MonthlyMetrics[] {
   // Build from real API data when available, otherwise use mock structure
   const months = ['2024-06', '2024-07', '2024-08', '2024-09', '2024-10', '2024-11'];
   
   return months.map((month, index) => {
     // Use real revenue data if available
-    const monthRevenue = kajabiData.revenue?.monthlyBreakdown?.find((m: any) => m.month === month)?.revenue || 
+    const monthRevenue = kajabiData.revenue?.monthlyBreakdown?.find((m) => m.month === month)?.revenue || 
                         (45000 + index * 5000); // Fallback calculation
     
     // Use real booking data if available  
-    const monthBookings = calcomData.stats?.monthlyBreakdown?.find((m: any) => m.month === month) ||
+    const monthBookings: MonthBookings = calcomData.stats?.monthlyBreakdown?.find((m) => m.month === month) ||
                          { booked: 85 + index * 8, accepted: 68 + index * 6 };
     
     const youtubeViews = 25000 + index * 2000;
@@ -160,10 +202,10 @@ function buildMonthlyMetrics(youtubeData: any, kajabiData: any, calcomData: any)
   });
 }
 
-function buildVideoPerformance(youtubeData: any, calcomData: any): YouTubeVideo[] {
+function buildVideoPerformance(youtubeData: YouTubeApiData): YouTubeVideo[] {
   const videos = youtubeData.videoStats || [];
   
-  return videos.map((video: any, index: number) => ({
+  return videos.map((video) => ({
     id: video.id,
     title: video.title,
     publishedAt: video.publishedAt,
@@ -183,6 +225,9 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const { timeRange } = body;
+    
+    // Get mock data for filtering
+    const mockDashboardData = generateMockDashboardData();
     
     // Filter data based on time range
     const filteredData = { ...mockDashboardData };

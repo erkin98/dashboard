@@ -1,7 +1,7 @@
 // API Clients for Real Data Integration
 // Falls back to realistic mock data when API keys are not available
 
-import { YouTubeVideo, MonthlyMetrics, KajabiData, AIInsight } from '@/types';
+import { MonthlyMetrics, AIInsight } from '@/types';
 
 // Environment variables check
 const hasYouTubeAPI = !!process.env.YOUTUBE_API_KEY;
@@ -56,13 +56,13 @@ export class YouTubeAPIClient {
       if (!response.ok) throw new Error('YouTube API error');
       
       const data = await response.json();
-      return data.items.map((item: any) => ({
+      return data.items.map((item: { id: string; snippet: { title: string; publishedAt: string }; statistics: { viewCount: string; likeCount?: string; commentCount?: string } }) => ({
         id: item.id,
         title: item.snippet.title,
         publishedAt: item.snippet.publishedAt,
         views: parseInt(item.statistics.viewCount),
-        likes: parseInt(item.statistics.likeCount || 0),
-        comments: parseInt(item.statistics.commentCount || 0),
+        likes: parseInt(item.statistics.likeCount || '0'),
+        comments: parseInt(item.statistics.commentCount || '0'),
       }));
     } catch (error) {
       console.error('YouTube API error:', error);

@@ -8,7 +8,7 @@ interface FunnelChartProps {
   data: MonthlyMetrics;
   className?: string;
   theme?: string;
-  onStageClick?: (stage: string, data: any) => void;
+  onStageClick?: (stage: string, data: { value: number; conversion?: number }) => void;
 }
 
 export function FunnelChart({ data, className = '', theme, onStageClick }: FunnelChartProps) {
@@ -118,7 +118,7 @@ export function FunnelChart({ data, className = '', theme, onStageClick }: Funne
                 }`}
                 onMouseEnter={() => setHoveredStage(index)}
                 onMouseLeave={() => setHoveredStage(null)}
-                onClick={() => onStageClick?.(stage.label, { stage, data })}
+                onClick={() => onStageClick?.(stage.label, { value: stage.value, conversion: stage.percentage })}
               >
                 {/* Responsive stage header */}
                 <div className="flex items-start sm:items-center justify-between mb-2 sm:mb-3 gap-2">

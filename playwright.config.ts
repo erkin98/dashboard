@@ -85,23 +85,9 @@ export default defineConfig({
 
   /* Visual regression testing specific settings */
   expect: {
-    // Higher threshold for visual diffs to handle dynamic content
-    threshold: 0.3,
-    // Animation handling
     toHaveScreenshot: {
       threshold: 0.3,
-      mode: 'css',
       animations: 'disabled',
-      // Mask dynamic text and numbers by default
-      mask: [],
-      // Allow for slight differences in text rendering
-      maxDiffThreshold: 0.5,
-    },
-    toMatchScreenshot: {
-      threshold: 0.3,
-      mode: 'css',
-      animations: 'disabled',
-      maxDiffThreshold: 0.5,
     },
   },
 }); 

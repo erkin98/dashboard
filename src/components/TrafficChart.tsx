@@ -1,6 +1,6 @@
 'use client';
 
-import { ComposedChart, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
+import { ComposedChart, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { MonthlyMetrics } from '@/types';
 import { useState } from 'react';
 import { Eye, Users, TrendingUp, BarChart3 } from 'lucide-react';
@@ -13,7 +13,12 @@ interface TrafficChartProps {
 
 export function TrafficChart({ data, className = '', theme }: TrafficChartProps) {
   const [activeMetric, setActiveMetric] = useState<'views' | 'visitors' | 'both'>('both');
-  const [hoveredData, setHoveredData] = useState<any>(null);
+  const [hoveredData, setHoveredData] = useState<{
+    month: string;
+    youtubeViews: number;
+    websiteVisitors: number;
+    conversionRate: number;
+  } | null>(null);
 
   const formatMonth = (month: string) => {
     return new Date(month + '-01').toLocaleDateString('en-US', { 
@@ -49,7 +54,7 @@ export function TrafficChart({ data, className = '', theme }: TrafficChartProps)
     active 
   }: {
     metric: 'views' | 'visitors' | 'both';
-    icon: any;
+    icon: React.ComponentType<{ className?: string }>;
     label: string;
     value: string;
     change: string;

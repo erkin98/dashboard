@@ -27,13 +27,12 @@ interface FunnelStage {
   name: string;
   value: number;
   conversion?: number;
-  icon: any;
+  icon: React.ComponentType<{ className?: string }>;
   color: string;
 }
 
 export function DetailedFunnelOverview({ 
   monthlyMetrics, 
-  videos, 
   sales, 
   theme = 'dark' 
 }: DetailedFunnelOverviewProps) {

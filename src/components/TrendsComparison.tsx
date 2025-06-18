@@ -13,7 +13,6 @@ import {
   ChartBarIcon,
   TrophyIcon,
   PlayIcon,
-  CurrencyDollarIcon
 } from '@heroicons/react/24/outline';
 
 interface TrendsComparisonProps {
@@ -270,7 +269,7 @@ export function TrendsComparison({
                 key={timeframe.key}
                 variant={selectedTimeframe === timeframe.key ? 'default' : 'ghost'}
                 size="sm"
-                onClick={() => setSelectedTimeframe(timeframe.key as any)}
+                                  onClick={() => setSelectedTimeframe(timeframe.key as '3m' | '6m' | 'all')}
                 className={`h-8 px-3 text-xs ${
                   selectedTimeframe === timeframe.key
                     ? theme === 'dark'

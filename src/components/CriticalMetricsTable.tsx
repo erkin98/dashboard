@@ -125,7 +125,7 @@ export function CriticalMetricsTable({ data, theme = 'dark' }: CriticalMetricsTa
                   key={filter.key}
                   variant={timeFilter === filter.key ? 'default' : 'ghost'}
                   size="sm"
-                  onClick={() => setTimeFilter(filter.key as any)}
+                  onClick={() => setTimeFilter(filter.key as 'all' | 'last3' | 'last6' | 'current')}
                   className={`h-8 px-3 text-xs ${
                     timeFilter === filter.key
                       ? theme === 'dark'
