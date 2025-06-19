@@ -6,7 +6,7 @@ import {
   openaiAPI, 
   getAPIStatus 
 } from '@/lib/api-clients';
-import { generateMockDashboardData } from '@/data/mockData';
+import { generateMockDashboardData, getMockKajabiMonthlyRevenue, getMockCalComMonthlyCalls, generateVideoData } from '@/data/mockData';
 import { MonthlyMetrics, YouTubeVideo, DashboardData } from '@/types';
 
 // Type definitions for API responses
@@ -53,42 +53,62 @@ interface MonthBookings {
 
 export async function GET() {
   try {
-    console.log('🔄 Fetching dashboard data...');
+    // In a real application, this is where you'd make parallel API calls to:
+    // 1. YouTube API -> get video stats
+    // 2. Kajabi API -> get revenue and sales data per month
+    // 3. Cal.com API -> get call data per month
     
-    // Get API connection status
-    const apiStatus = getAPIStatus();
-    console.log('API Status:', apiStatus);
-    
-    // Get real or mock data based on API availability
-    const [youtubeData, kajabiData, calcomData] = await Promise.all([
-      fetchYouTubeData(),
-      fetchKajabiData(), 
-      fetchCalComData(),
-    ]);
+    // For this demo, we simulate this by calling our new mock generator functions.
+    const months = ['2024-06', '2024-07', '2024-08', '2024-09', '2024-10', '2024-11'];
+    const videos = generateVideoData(); // Simulate getting video list first
 
-    // Combine data into dashboard format
-    const dashboardData = await buildDashboardData(youtubeData, kajabiData, calcomData);
-    
-    // Generate AI insights
-    const aiInsights = await openaiAPI.generateInsights(dashboardData.monthlyMetrics);
-    
-    return NextResponse.json({
-      ...dashboardData,
-      aiInsights,
-      apiStatus,
-      lastUpdated: new Date().toISOString(),
+    const monthlyMetrics: MonthlyMetrics[] = months.map((month, index) => {
+      const growth = 1 + (index * 0.15);
+      
+      // Simulate fetching from Kajabi and Cal.com APIs for the month
+      const kajabiData = getMockKajabiMonthlyRevenue(month, growth);
+      const calcomData = getMockCalComMonthlyCalls(month, growth, videos);
+      
+      // Aggregate the data into the structure the frontend expects
+      const newCashCollected = {
+        paidInFull: kajabiData.new_cash_collected.pif,
+        installments: kajabiData.new_cash_collected.installments,
+        total: kajabiData.new_cash_collected.pif + kajabiData.new_cash_collected.installments,
+      };
+
+      const totalSales = kajabiData.high_ticket_closes.pif +
+                         kajabiData.high_ticket_closes.installments +
+                         kajabiData.discount_closes.pif +
+                         kajabiData.discount_closes.installments;
+
+      return {
+        month,
+        youtubeViews: Math.floor(50000 * growth),
+        youtubeUniqueViews: Math.floor(35000 * growth),
+        websiteVisitors: Math.floor(8000 * growth),
+        callsBooked: calcomData.total_booked,
+        callsAccepted: calcomData.accepted,
+        showUpRate: calcomData.accepted > 0 ? (calcomData.show_ups / calcomData.accepted) * 100 : 0,
+        newCashCollected,
+        totalCashCollected: kajabiData.total_cash_collected,
+        conversionRates: {
+          viewToWebsite: 16, // Static for now, can be calculated from real data
+          websiteToCall: calcomData.total_booked / Math.floor(8000 * growth),
+          callToAccepted: calcomData.total_booked > 0 ? (calcomData.accepted / calcomData.total_booked) * 100 : 0,
+          acceptedToSale: calcomData.accepted > 0 ? (totalSales / calcomData.accepted) * 100 : 0,
+        },
+      };
     });
+
+    // We generate the rest of the dashboard data as before
+    const fullData = generateMockDashboardData();
+    fullData.monthlyMetrics = monthlyMetrics;
     
+    return NextResponse.json(fullData);
+
   } catch (error) {
-    console.error('Dashboard API error:', error);
-    
-    // Fallback to pure mock data on any error
-    const mockData = generateMockDashboardData();
-    return NextResponse.json({
-      ...mockData,
-      apiStatus: { youtube: 'error', kajabi: 'error', calcom: 'error', openai: 'error' },
-      lastUpdated: new Date().toISOString(),
-    });
+    console.error('Error generating mock dashboard data:', error);
+    return NextResponse.json({ message: 'Error generating mock data' }, { status: 500 });
   }
 }
 

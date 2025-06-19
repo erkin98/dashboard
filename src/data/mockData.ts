@@ -13,44 +13,144 @@ import {
   DetailedLeadSource
 } from '@/types';
 
+// New types to match the spec
+interface MockKajabiMonthlyRevenue {
+  month: string;
+  new_cash_collected: {
+    pif: number;
+    installments: number;
+  };
+  total_cash_collected: number;
+  high_ticket_closes: {
+    pif: number;
+    installments: number;
+  };
+  discount_closes: {
+    pif: number;
+    installments: number;
+  };
+}
+
+interface MockCalComMonthlyCalls {
+  month: string;
+  total_booked: number;
+  accepted: number;
+  show_ups: number;
+  cancelled: number;
+  video_sources: Array<{
+    video_id: string;
+    calls_booked: number;
+    accepted: number;
+    show_ups: number;
+  }>;
+}
+
+
+// --- REFACTORED MOCK DATA GENERATION ---
+
+// Generate mock data for a single month for Kajabi
+export const getMockKajabiMonthlyRevenue = (month: string, growth: number): MockKajabiMonthlyRevenue => {
+  const highTicketPif = Math.floor(15 * growth);
+  const highTicketInstall = Math.floor(10 * growth);
+  const discountPif = Math.floor(5 * growth);
+  const discountInstall = Math.floor(5 * growth);
+  
+  const newCashPif = highTicketPif * 3000 + discountPif * 1500;
+  const newCashInstall = highTicketInstall * 500 + discountInstall * 250; // Assuming smaller first installment
+
+  return {
+    month,
+    new_cash_collected: {
+      pif: newCashPif,
+      installments: newCashInstall,
+    },
+    total_cash_collected: newCashPif + newCashInstall + Math.floor(20000 * growth), // Includes recurring
+    high_ticket_closes: {
+      pif: highTicketPif,
+      installments: highTicketInstall,
+    },
+    discount_closes: {
+      pif: discountPif,
+      installments: discountInstall,
+    },
+  };
+};
+
+// Generate mock data for a single month for Cal.com
+export const getMockCalComMonthlyCalls = (month: string, growth: number, allVideos: YouTubeVideo[]): MockCalComMonthlyCalls => {
+  const totalBooked = Math.floor(120 * growth);
+  const accepted = Math.floor(totalBooked * (0.8 + Math.random() * 0.1)); // 80-90% accepted
+  const showUps = Math.floor(accepted * (0.9 + Math.random() * 0.05)); // 90-95% show-up from accepted
+  const cancelled = totalBooked - accepted;
+
+  // Distribute calls among random videos
+  let remainingCalls = totalBooked;
+  const videoSources = allVideos.slice(0, 5).map(video => {
+      const callsForVideo = Math.floor(remainingCalls * (Math.random() * 0.4 + 0.1));
+      remainingCalls -= callsForVideo;
+      const acceptedForVideo = Math.floor(callsForVideo * 0.85);
+      const showUpsForVideo = Math.floor(acceptedForVideo * 0.92);
+      return {
+        video_id: video.id,
+        calls_booked: callsForVideo,
+        accepted: acceptedForVideo,
+        show_ups: showUpsForVideo
+      }
+  });
+  // Assign remaining to the first video
+  if(videoSources.length > 0) {
+    videoSources[0].calls_booked += remainingCalls;
+  }
+
+
+  return {
+    month,
+    total_booked: totalBooked,
+    accepted: accepted,
+    show_ups: showUps,
+    cancelled: cancelled,
+    video_sources: videoSources,
+  };
+};
+
+
 // Generate realistic monthly metrics for last 6 months
-const generateMonthlyMetrics = (): MonthlyMetrics[] => {
+const generateMonthlyMetrics = (videos: YouTubeVideo[]): MonthlyMetrics[] => {
   const months = ['2024-06', '2024-07', '2024-08', '2024-09', '2024-10', '2024-11'];
   
   return months.map((month, index) => {
     const growth = 1 + (index * 0.15); // 15% monthly growth trend
-    const base = {
-      youtubeViews: Math.floor(50000 * growth),
-      youtubeUniqueViews: Math.floor(35000 * growth),
-      websiteVisitors: Math.floor(8000 * growth),
-      callsBooked: Math.floor(120 * growth),
-      callsAccepted: Math.floor(96 * growth),
-    };
+    const kajabiData = getMockKajabiMonthlyRevenue(month, growth);
+    const calcomData = getMockCalComMonthlyCalls(month, growth, videos);
     
     const newCashCollected = {
-      paidInFull: Math.floor(45000 * growth),
-      installments: Math.floor(25000 * growth),
-      total: Math.floor(70000 * growth),
+      paidInFull: kajabiData.new_cash_collected.pif,
+      installments: kajabiData.new_cash_collected.installments,
+      total: kajabiData.new_cash_collected.pif + kajabiData.new_cash_collected.installments,
     };
     
     return {
       month,
-      ...base,
-      showUpRate: 80 + Math.random() * 10, // 80-90%
+      youtubeViews: Math.floor(50000 * growth),
+      youtubeUniqueViews: Math.floor(35000 * growth),
+      websiteVisitors: Math.floor(8000 * growth),
+      callsBooked: calcomData.total_booked,
+      callsAccepted: calcomData.accepted,
+      showUpRate: (calcomData.show_ups / calcomData.accepted) * 100,
       newCashCollected,
-      totalCashCollected: Math.floor(85000 * growth),
+      totalCashCollected: kajabiData.total_cash_collected,
       conversionRates: {
-        viewToWebsite: (base.websiteVisitors / base.youtubeViews) * 100,
-        websiteToCall: (base.callsBooked / base.websiteVisitors) * 100,
-        callToAccepted: (base.callsAccepted / base.callsBooked) * 100,
-        acceptedToSale: 25 + Math.random() * 10, // 25-35%
+        viewToWebsite: (8000 * growth) / (50000 * growth) * 100,
+        websiteToCall: (calcomData.total_booked / (8000 * growth)) * 100,
+        callToAccepted: (calcomData.accepted / calcomData.total_booked) * 100,
+        acceptedToSale: (kajabiData.high_ticket_closes.pif + kajabiData.high_ticket_closes.installments) / calcomData.accepted * 100,
       },
     };
   });
 };
 
 // Generate YouTube video performance data
-const generateVideoData = (): YouTubeVideo[] => {
+export const generateVideoData = (): YouTubeVideo[] => {
   const videoTitles = [
     "How I Built a 7-Figure Coaching Business in 12 Months",
     "The Secret Sales Framework That Changed Everything",
@@ -438,9 +538,13 @@ const mockAIInsights: AIInsight[] = [
   },
 ];
 
+// Generate initial data on load
+const initialVideos = generateVideoData();
+const initialMonthlyMetrics = generateMonthlyMetrics(initialVideos);
+
 export const mockDashboardData: DashboardData = {
-  monthlyMetrics: generateMonthlyMetrics(),
-  videos: generateVideoData(),
+  monthlyMetrics: initialMonthlyMetrics,
+  videos: initialVideos,
   calls: generateCallData(),
   sales: generateSalesData(),
   kajabiData: mockKajabiData,
@@ -452,15 +556,19 @@ export const mockDashboardData: DashboardData = {
 };
 
 // Export function version for dynamic generation
-export const generateMockDashboardData = (): DashboardData => ({
-  monthlyMetrics: generateMonthlyMetrics(),
-  videos: generateVideoData(),
-  calls: generateCallData(),
-  sales: generateSalesData(),
-  kajabiData: mockKajabiData,
-  aiInsights: mockAIInsights,
-  emailCampaigns: generateEmailCampaigns(),
-  realTimeAlerts: generateRealTimeAlerts(),
-  performanceThresholds: generatePerformanceThresholds(),
-  trafficSources: generateTrafficSources(),
-}); 
+export const generateMockDashboardData = (): DashboardData => {
+  const videos = generateVideoData();
+  const monthlyMetrics = generateMonthlyMetrics(videos);
+  return {
+    monthlyMetrics,
+    videos,
+    calls: generateCallData(),
+    sales: generateSalesData(),
+    kajabiData: mockKajabiData,
+    aiInsights: mockAIInsights,
+    emailCampaigns: generateEmailCampaigns(),
+    realTimeAlerts: generateRealTimeAlerts(),
+    performanceThresholds: generatePerformanceThresholds(),
+    trafficSources: generateTrafficSources(),
+  };
+}; 

@@ -19,7 +19,6 @@ import {
   Calendar,
   Command,
   Download,
-  Hexagon,
   type LucideIcon,
   Moon,
   RefreshCw,
@@ -51,6 +50,7 @@ import { VideoAttributionAnalytics } from '@/components/VideoAttributionAnalytic
 import { TrendsComparison } from '@/components/TrendsComparison';
 import { CountryBreakdown } from '@/components/CountryBreakdown';
 import { DashboardData } from '@/types';
+import { DashboardIcon } from '@/components/DashboardIcon';
 
 interface ParticleType {
   x: number;
@@ -576,10 +576,10 @@ export default function Dashboard() {
           </div>
 
           <div className="mt-8">
-            <Tabs defaultValue="critical" className="w-full">
+            <Tabs defaultValue="critical" className="w-full flex flex-col">
               <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-4">
-                <div className="w-full overflow-x-auto scrollbar-hide">
-                  <TabsList className={`flex p-1 backdrop-blur-xl transition-all duration-300 hover:backdrop-blur-2xl min-w-max ${
+                <div className="w-full">
+                  <TabsList className={`flex flex-wrap justify-start p-1 backdrop-blur-xl transition-all duration-300 hover:backdrop-blur-2xl h-auto gap-2 ${
                     theme === 'dark' ? 'bg-slate-800/30 hover:bg-slate-800/40' : 'bg-white/50 hover:bg-white/70 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.6),0_4px_16px_rgba(0,0,0,0.06)]'
                   }`}>
                   <TabsTrigger
@@ -1336,7 +1336,7 @@ export default function Dashboard() {
               <div className="absolute inset-10 w-12 h-12 bg-gradient-to-r from-cyan-500 to-purple-500 rounded-full animate-pulse-glow"></div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold gradient-text mb-2">COACHING NEXUS</div>
+              <div className="text-2xl font-bold gradient-text mb-2">NextGen Dashboard</div>
               <div className="text-cyan-400 font-mono text-sm tracking-wider animate-shimmer">
                 INITIALIZING WORLD-CLASS ANALYTICS
               </div>
@@ -1358,18 +1358,10 @@ export default function Dashboard() {
             : 'bg-white/40 border border-white/50 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.8),0_8px_32px_rgba(0,0,0,0.06)]'
         } px-4 sm:px-6 hover:shadow-2xl hover:scale-[1.01]`}>
           <div className="flex items-center space-x-3 animate-fade-in-scale">
-            <div className="relative">
-              <Hexagon className="h-8 w-8 sm:h-10 sm:w-10 text-cyan-500 animate-premium-float drop-shadow-[0_0_20px_rgba(6,182,212,0.8)]" />
-              <div className="absolute inset-0 h-8 w-8 sm:h-10 sm:w-10 text-cyan-500/20 animate-pulse">
-                <Hexagon className="h-full w-full" />
-              </div>
-              <div className="absolute inset-0 h-8 w-8 sm:h-10 sm:w-10 animate-holographic opacity-30">
-                <Hexagon className="h-full w-full" />
-              </div>
-            </div>
+            <DashboardIcon className="h-8 w-8 sm:h-10 sm:w-10 text-cyan-500 animate-premium-float drop-shadow-[0_0_20px_rgba(6,182,212,0.8)]" />
             <div className="flex flex-col">
               <span className="text-xl sm:text-2xl font-black gradient-text tracking-tight animate-card-entrance">
-                COACHING NEXUS
+                NextGen Dashboard
               </span>
               <span className={`text-xs font-medium tracking-wider transition-all duration-500 ${
                 theme === 'dark' ? 'text-slate-400' : 'text-slate-600'
